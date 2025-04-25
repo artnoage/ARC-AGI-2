@@ -6,7 +6,7 @@ After=network.target
 User=vaioslasxos
 WorkingDirectory=/home/vaioslasxos/ARC-AGI-2
 # Use the conda environment's Python and Gunicorn
-ExecStart=/home/vaioslasxos/anaconda3/envs/YOUR_ENV_NAME/bin/python -m gunicorn --workers 3 --bind 127.0.0.1:5000 wsgi:app --log-level debug
+ExecStart=/home/vaioslasxos/anaconda3/envs/vaios/bin/python -m gunicorn --workers 3 --bind 127.0.0.1:5000 wsgi:app --log-level debug
 StandardOutput=journal
 StandardError=journal
 Restart=always
