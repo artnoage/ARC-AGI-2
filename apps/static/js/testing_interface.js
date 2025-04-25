@@ -1285,8 +1285,9 @@ function connectWebSocket() {
         console.log("WebSocket already connected.");
         return;
     }
-    // Connect to the server hosting the page, default port 5000
-    socket = io(`http://${window.location.hostname}:5000`);
+    // Connect through Nginx using the correct path for Socket.IO under /arc2/
+    // This assumes Nginx is configured to proxy requests to /arc2/socket.io/
+    socket = io({ path: '/arc2/socket.io' });
 
     socket.on('connect', () => {
         console.log('WebSocket connected successfully. SID:', socket.id);
