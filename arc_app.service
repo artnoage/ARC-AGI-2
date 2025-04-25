@@ -3,7 +3,7 @@ Description=ARC Web Application
 After=network.target
 
 [Service]
-User=www-data
+User=vaioslasxos
 WorkingDirectory=/home/vaioslasxos/ARC-AGI-2
 ExecStart=/usr/bin/python3 -m gunicorn --workers 3 --bind 127.0.0.1:5000 wsgi:app
 Restart=always
