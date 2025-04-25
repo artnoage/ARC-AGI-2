@@ -6,7 +6,7 @@ import shutil # For file copying
 from datetime import datetime, timedelta # For timestamp comparison
 from flask import Flask, send_from_directory, jsonify, request
 from flask_socketio import SocketIO, emit
-from werkzeug.middleware.proxy_fix import ProxyFix # Import ProxyFix
+from werkzeug.middleware.proxy_fix import ProxyFix # Import ProxyFix (RE-ADDED)
 
 # --- Configuration ---
 logging.basicConfig(level=logging.INFO)
@@ -20,11 +20,11 @@ BACKUP_INTERVAL = timedelta(hours=1) # Backup interval (1 hour)
 
 # --- Flask App Setup ---
 app = Flask(__name__, static_folder=None) # Disable default static folder
-# Add ProxyFix middleware to handle headers from Nginx
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+# Re-add ProxyFix middleware (without x_prefix)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.config['SECRET_KEY'] = 'your_secret_key_here!' # Change this in production!
-# Ensure SocketIO uses the correct path when behind proxy
-socketio = SocketIO(app, cors_allowed_origins="*", path='/arc2/socket.io') # Specify the path
+# Use default path ('/socket.io') as Nginx proxies to that
+socketio = SocketIO(app, cors_allowed_origins="*") # Removed explicit path
 
 # --- Data Loading ---
 # base_task_data = {} # Replaced by unified_dataset_data
