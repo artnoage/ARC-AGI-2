@@ -838,7 +838,8 @@ function loadDataset(datasetName) {
     CURRENT_DATASET_NAME = datasetName; // Set dataset name early for potential error messages
     // Use the unified dataset name 'dataset'
     const filename = `dataset.json`;
-    const serverRoute = `/data/${filename}`; // Path for Flask server route
+    // Prepend /arc2/ for deployment behind Nginx proxy
+    const serverRoute = `/arc2/data/${filename}`; // Path for Flask server route
 
     infoMsg(`Loading dataset '${filename}'...`);
     errorMsg('');
