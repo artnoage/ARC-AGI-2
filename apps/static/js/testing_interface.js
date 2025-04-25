@@ -1285,9 +1285,9 @@ function connectWebSocket() {
         console.log("WebSocket already connected.");
         return;
     }
-    // Connect to Socket.IO - Let it determine the path relative to the host
+    // Connect to Socket.IO - Explicitly set the path for Nginx proxying
     // Nginx needs to correctly proxy the /socket.io/ path when accessed via /arc2/
-    socket = io({ transports: ['websocket', 'polling'] }); // Removed explicit path, added transports for robustness
+    socket = io({ path: '/arc2/socket.io/', transports: ['websocket', 'polling'] }); // Added explicit path for /arc2/
 
     socket.on('connect', () => {
         console.log('WebSocket connected successfully. SID:', socket.id);
