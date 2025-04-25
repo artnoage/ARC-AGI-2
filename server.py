@@ -12,7 +12,8 @@ logging.basicConfig(level=logging.INFO)
 APP_DIR = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(APP_DIR, 'data')
 BACKUP_DIR = os.path.join(DATA_DIR, 'backups') # Backup directory
-APPS_STATIC_DIR = os.path.join(APP_DIR, 'apps')
+APPS_DIR = os.path.join(APP_DIR, 'apps') # Renamed for clarity
+STATIC_DIR = os.path.join(APPS_DIR, 'static') # Correct path to static files
 TRACE_STORE_FILE = os.path.join(DATA_DIR, 'traces_store.json')
 BACKUP_INTERVAL = timedelta(hours=1) # Backup interval (1 hour)
 
@@ -167,12 +168,23 @@ load_trace_data()
 @app.route('/')
 def index():
     """Serves the testing interface directly."""
-    return send_from_directory(APPS_STATIC_DIR, 'testing_interface.html')
+    return send_from_directory(APPS_DIR, 'testing_interface.html') # Serve HTML from apps/
 
+@app.route('/static/<path:filename>')
+def serve_static_files(filename):
+    """Serves static files (CSS, JS, images) from the apps/static directory."""
+    return send_from_directory(STATIC_DIR, filename)
+
+# Keep this route if other things in 'apps/' besides 'static/' and 'testing_interface.html' need serving.
+# If not, it might be removable, but let's keep it for now for safety.
 @app.route('/apps/<path:filename>')
 def serve_apps_files(filename):
-    """Serves static files from the apps directory (js, css, html)."""
-    return send_from_directory(APPS_STATIC_DIR, filename)
+    """Serves other files from the apps directory if needed (e.g., other HTML)."""
+    # Avoid serving files from static via this route
+    if filename.startswith('static/'):
+        return "Not Found", 404
+    return send_from_directory(APPS_DIR, filename)
+
 
 @app.route('/data/dataset.json') # Specific route for dataset.json
 def serve_unified_data():
@@ -556,8 +568,8 @@ def handle_sign_variation(data):
 # --- Main Execution ---
 if __name__ == '__main__':
     print("Starting Flask-SocketIO server...")
-    print(f"Serving index from: {APP_DIR}")
-    print(f"Serving app files from: {APPS_STATIC_DIR}")
+    print(f"Serving index HTML from: {APPS_DIR}")
+    print(f"Serving static files (CSS/JS/IMG) from: {STATIC_DIR}")
     print(f"Using trace store: {TRACE_STORE_FILE}")
     # Use host='0.0.0.0' to make it accessible on the network
     # Use debug=True for development (auto-reloads), but disable in production
