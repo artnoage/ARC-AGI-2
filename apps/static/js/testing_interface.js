@@ -838,10 +838,10 @@ function loadDataset(datasetName) {
     CURRENT_DATASET_NAME = datasetName; // Set dataset name early for potential error messages
     // Use the unified dataset name 'dataset'
     const filename = `dataset.json`;
-    // Use a root-relative path. Nginx needs to correctly proxy /data/dataset.json when accessed via /arc2/
-    const serverRoute = `/data/${filename}`; // Path for Flask server route
+    // Fetch from the static directory, which Nginx serves via /arc2/static/
+    const serverRoute = `/arc2/static/${filename}`; // Updated path
 
-    infoMsg(`Loading dataset '${filename}'...`);
+    infoMsg(`Loading dataset '${filename}' from static path...`);
     errorMsg('');
     $('#loaded_dataset_display').text(`Loading ${filename}...`);
     console.log(`Fetching data from ${serverRoute}...`);
@@ -1285,9 +1285,11 @@ function connectWebSocket() {
         console.log("WebSocket already connected.");
         return;
     }
-    // Connect to Socket.IO - Explicitly set the path for Nginx proxying
-    // Nginx needs to correctly proxy the /socket.io/ path when accessed via /arc2/
-    socket = io({ path: '/arc2/socket.io/', transports: ['websocket', 'polling'] }); // Added explicit path for /arc2/
+    // Connect to Socket.IO - Dynamically set the path based on the environment
+    // Use '/arc2/socket.io/' if served under /arc2/, otherwise default '/socket.io/'
+    const socketPath = window.location.pathname.startsWith('/arc2/') ? '/arc2/socket.io/' : '/socket.io/';
+    console.log(`Using Socket.IO path: ${socketPath}`); // Log the determined path
+    socket = io({ path: socketPath, transports: ['websocket', 'polling'] });
 
     socket.on('connect', () => {
         console.log('WebSocket connected successfully. SID:', socket.id);
