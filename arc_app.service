@@ -1,0 +1,12 @@
+[Unit]
+Description=ARC Web Application
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/path/to/your/app
+ExecStart=/usr/local/bin/gunicorn --workers 3 --bind 127.0.0.1:5000 wsgi:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
