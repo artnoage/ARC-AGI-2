@@ -838,8 +838,8 @@ function loadDataset(datasetName) {
     CURRENT_DATASET_NAME = datasetName; // Set dataset name early for potential error messages
     // Use the unified dataset name 'dataset'
     const filename = `dataset.json`;
-    // Prepend /arc2/ for deployment behind Nginx proxy
-    const serverRoute = `/arc2/data/${filename}`; // Path for Flask server route
+    // Use a root-relative path. Nginx needs to correctly proxy /data/dataset.json when accessed via /arc2/
+    const serverRoute = `/data/${filename}`; // Path for Flask server route
 
     infoMsg(`Loading dataset '${filename}'...`);
     errorMsg('');
@@ -1285,9 +1285,9 @@ function connectWebSocket() {
         console.log("WebSocket already connected.");
         return;
     }
-    // Connect through Nginx using the correct path for Socket.IO under /arc2/
-    // This assumes Nginx is configured to proxy requests to /arc2/socket.io/
-    socket = io({ path: '/arc2/socket.io' });
+    // Connect to Socket.IO - Let it determine the path relative to the host
+    // Nginx needs to correctly proxy the /socket.io/ path when accessed via /arc2/
+    socket = io({ transports: ['websocket', 'polling'] }); // Removed explicit path, added transports for robustness
 
     socket.on('connect', () => {
         console.log('WebSocket connected successfully. SID:', socket.id);
@@ -1301,7 +1301,9 @@ function connectWebSocket() {
 
     socket.on('connect_error', (error) => {
         console.error('WebSocket connection error:', error);
-        errorMsg('Failed to connect to real-time server.');
+        // Log the specific error object for more details
+        console.error(error); 
+        errorMsg('Failed to connect to real-time server. Check console for details.');
     });
 
     socket.on('connection_ack', (data) => {
@@ -1444,7 +1446,7 @@ function connectWebSocket() {
             
             // Fetch fresh dataset from server
             $.ajax({
-                url: `/data/dataset.json`,
+                url: `/data/dataset.json`, // Use root-relative path
                 dataType: 'json',
                 cache: false, // Prevent caching to ensure we get fresh data
                 success: function(data) {
@@ -1881,3 +1883,25 @@ $(document).ready(function () {
         applyAndDisplayTransformations();
     });
 });
+
+// Helper functions for cookies
+function setCookie(name, value, days) {
+    var expires = "";
+    if (days) {
+        var date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "") + expires + "; path=/";
+}
+
+function getCookie(name) {
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}

@@ -11,7 +11,12 @@ from werkzeug.middleware.proxy_fix import ProxyFix # Import ProxyFix (RE-ADDED)
 # --- Configuration ---
 logging.basicConfig(level=logging.INFO)
 APP_DIR = os.path.abspath(os.path.dirname(__file__))
-DATA_DIR = os.path.join(APP_DIR, 'data')
+
+# Determine Data Directory: Use environment variable or default relative path
+DEFAULT_DATA_DIR = os.path.join(APP_DIR, 'data')
+DATA_DIR = os.environ.get('ARC_DATA_DIR', DEFAULT_DATA_DIR)
+logging.info(f"Using data directory: {DATA_DIR}") # Log the determined data directory
+
 BACKUP_DIR = os.path.join(DATA_DIR, 'backups') # Backup directory
 APPS_DIR = os.path.join(APP_DIR, 'apps') # Renamed for clarity
 STATIC_DIR = os.path.join(APPS_DIR, 'static') # Correct path to static files

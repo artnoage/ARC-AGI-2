@@ -5,6 +5,7 @@ After=network.target
 [Service]
 User=vaioslasxos
 WorkingDirectory=/home/vaioslasxos/ARC-AGI-2
+Environment="ARC_DATA_DIR=/home/vaioslasxos/ARC-AGI-2/data"
 # Use the conda environment's Python and Gunicorn
 ExecStart=/home/vaioslasxos/miniconda3/envs/vaios/bin/python -m gunicorn --workers 3 --bind 127.0.0.1:5000 wsgi:app --log-level debug
 StandardOutput=journal
