@@ -1,0 +1,103 @@
+.cell {
+    width: 100px;
+    height: 100px;
+    border-left: 1px solid #666; /* Slightly lighter border for dark theme */
+    border-top: 1px solid #666; /* Slightly lighter border for dark theme */
+    float: left;
+    background-color: #000;
+    font-size: 0.7em;
+    text-align: center;
+    box-sizing: border-box; /* Ensure width/height include border */
+}
+
+.row {
+    clear: both;
+}
+
+.symbol_0 {
+    background-color: #000;
+}
+.symbol_1 {
+    background-color: #0074D9; /* blue */
+}
+.symbol_2 {
+    background-color: #FF4136; /* red */
+}
+.symbol_3 {
+    background-color: #2ECC40; /* green */
+}
+.symbol_4 {
+    background-color: #FFDC00; /* yellow */
+}
+.symbol_5 {
+    background-color: #AAAAAA; /* grey */
+}
+.symbol_6 {
+    background-color: #F012BE; /* fuschia */
+}
+.symbol_7 {
+    background-color: #FF851B; /* orange */
+}
+.symbol_8 {
+    background-color: #7FDBFF; /* teal */
+}
+.symbol_9 {
+    background-color: #870C25; /* brown */
+}
+
+
+/*Symbol picker*/
+
+.symbol_preview {
+    width: 20px;
+    height: 20px;
+    float: left;
+}
+
+.grid_size_field {
+    width: 50px;
+}
+
+.selected-symbol-preview {
+    border: 2px solid orange;
+}
+
+
+/*Selectable*/
+
+.ui-selected {
+    background-image: url(../img/black-twill.png), url(../img/brushed-alum.png);
+}
+.ui-selectable-helper {
+    border: 1px dotted #ddd;
+    position: absolute;
+    z-index: 1000;
+}
+
+/*Message display - Styled as bubbles */
+
+#error_display, #info_display {
+    position: fixed; /* Position relative to the viewport */
+    bottom: 20px; /* Distance from the bottom */
+    right: 20px; /* Distance from the right */
+    padding: 10px 15px; /* Padding inside the bubble */
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* Subtle shadow */
+    z-index: 1001; /* Ensure it's above most other elements */
+    max-width: 300px; /* Limit width */
+    font-size: 14px;
+    display: none; /* Initially hidden - JS will show them */
+    opacity: 0.9; /* Slight transparency */
+}
+
+#error_display {
+    background-color: #FF4136; /* Red background */
+    color: white; /* White text */
+    border: 1px solid #d9362d;
+}
+
+#info_display {
+    background-color: #2ECC40; /* Green background */
+    color: white; /* White text */
+    border: 1px solid #25a235;
+}

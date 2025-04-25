@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>ARC testing interface</title>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <!-- Add Socket.IO Client Library (removed integrity/crossorigin for simplicity) -->
+        <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+        <script src="/apps/js/common.js"></script>
+        <script src="/apps/js/testing_interface.js"></script>
+
+        <link rel="stylesheet" type="text/css" href="/apps/css/common.css">
+        <link rel="stylesheet" type="text/css" href="/apps/css/testing_interface.css">
+
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans&display=swap" rel="stylesheet">
+
+    </head>
+    <body>
+        <!-- Modal removed -->
+        <div id="workspace"> <!-- Workspace is now initially visible to show the welcome screen -->
+
+            <!-- New Welcome Screen -->
+            <div id="welcome_screen">
+                <h2>Welcome to the ARC testing interface</h2>
+                <p>Please enter a username and select a dataset to begin.</p>
+                <div style="margin-bottom: 15px;">
+                    <label for="username_input" style="margin-right: 5px;">Username:</label>
+                    <input type="text" id="username_input" size="20" placeholder="Enter username">
+                    <span id="username_error" style="color: red; margin-left: 10px; display: none;">Username is required!</span>
+                </div>
+                <div>
+                    <label style="margin-right: 10px;">Select Dataset:</label>
+                    <button onclick="loadDataset('dataset')" class="dataset_select_btn">Load Dataset</button> <!-- Changed to single dataset -->
+                    <span id="loaded_dataset_display" style="margin-left: 10px; font-style: italic;"></span>
+                </div>
+            </div>
+            <!-- End New Welcome Screen -->
+
+            <!-- Main content areas initially hidden -->
+            <div id="demonstration_examples_view" style="display: none;">
+                <div class="text" id="task_demo_header">Task demonstration</div>
+                <div id="task_preview"></div>
+            </div>
+
+            <div id="evaluation_view">
+
+                <div id="evaluation-input-view">
+                    <div class="text">Test input grid <span id="current_test_input_id_display">0</span>/<span id="total_test_input_count_display">0</span>
+                        <button onclick="nextTestInput()">Next test input</button>
+                    </div>
+
+                    <div id="evaluation_input" class="selectable_grid"></div>
+                </div>
+
+                <div id="evaluation_output_editor">
+                    <div id="editor_area"> <!-- Added wrapper div -->
+                        <div id="load_task_control_btns">
+                            <!-- Dataset Selection Buttons Removed from here -->
+
+                        <!-- Navigation Controls -->
+                        <button onclick="randomTask()" id="random_task_btn"> Random Task </button>
+                        <span id="list_navigation" style="display: none;">
+                            <button onclick="previousTask()" id="prev_task_btn">< Prev</button>
+                            <span id="task_index_display">Task 1/1</span>
+                            <button onclick="nextTask()" id="next_task_btn">Next ></button>
+                        </span>
+                        <!-- Go to ID Controls -->
+                        <span id="goto_id_controls" style="margin-left: 15px;">
+                            <label for="task_id_input">Go to ID:</label>
+                            <input type="text" id="task_id_input" size="10" placeholder="Enter ID">
+                            <button onclick="gotoTaskById()" id="goto_task_btn">Go</button>
+                        </span><span id="goto_task_number_controls" style="margin-left: 15px;">
+                            <label for="task_number_input">Go to Task #:</label>
+                            <input type="number" id="task_number_input" size="5" min="1" placeholder="#">
+                            <button onclick="gotoTaskByNumber()" id="goto_task_number_btn">Go</button>
+                        </span>
+                        <!-- Version Navigation -->
+                        <span id="version_navigation" style="margin-left: 15px; display: none;"> <!-- Initially hidden -->
+                            <button onclick="previousVersion()" id="prev_version_btn" disabled>< Prev Ver</button>
+                            <span id="version_display" style="margin: 0 5px;">Ver -/-</span>
+                            <button onclick="nextVersion()" id="next_version_btn" disabled>Next Ver ></button>
+                            <button onclick="removeVersion()" id="remove_version_btn" style="margin-left: 10px;">Remove Ver</button>
+                        </span>
+                        <!-- Logout Button Moved Below -->
+
+                        <div style="margin-top: 5px;"> <!-- Reduced spacing with div instead of p -->
+                            <label id='task_name'> Task name: </label> <!-- Removed 'for' attribute -->
+                        </div>
+                        <div style="margin-top: 5px;"> <!-- Reduced spacing with div instead of p -->
+                            <label for="show_symbol_numbers">Show symbol numbers: </label>
+                            <input type="checkbox" id="show_symbol_numbers" name="show_symbol_numbers"
+                            onchange="changeSymbolVisibility()">
+                        </div>
+
+                        <!-- Moved Grid Controls Here -->
+                        <div id="resize_control_btns" style="margin-top: 5px;"> <!-- Reduced margin-top -->
+                            <label for="output_grid_size">Change grid size: </label>
+                            <input type="text" id="output_grid_size" class="grid_size_field" name="size" value="3x3">
+                            <button onclick="resizeOutputGrid()" id="resize_btn">Resize</button>
+                        </div>
+
+                        <div id="distance_display_controls" style="margin-top: 5px; margin-bottom: 5px;">
+                            <input type="checkbox" id="show_distance_toggle" checked onchange="toggleDistanceDisplay()">
+                            <label for="show_distance_toggle" style="margin-right: 10px;">Show Distance:</label>
+                            <span id="distance_value_display" style="font-weight: bold;">N/A</span>
+                        </div>
+
+                        <button onclick="copyFromInput()">Copy from input</button>
+                        <button onclick="resetOutputGrid()">Reset grid</button>
+                        <button onclick="submitSolution()" id="submit_solution_btn">Submit!</button>
+                        <!-- Added Logout Button Next to Submit -->
+                        <button onclick="logoutUser()" id="logout_btn">Logout</button>
+                        <!-- End Moved Grid Controls -->
+                    </div>
+
+                    <!-- Removed <div id="edition_view"> -->
+                    <!-- Removed empty editor_grid_control_btns div -->
+
+                        <div id="output_grid">
+                            <div class="edition_grid selectable_grid">
+                                <div class="row">
+                                    <div class="cell" symbol="0" x="0" y="0"></div>
+                                    <div class="cell" symbol="0" x="0" y="1"></div>
+                                    <div class="cell" symbol="0" x="0" y="2"></div>
+                                </div>
+                                <div class="row">
+                                    <div class="cell" symbol="0" x="1" y="0"></div>
+                                    <div class="cell" symbol="0" x="1" y="1"></div>
+                                    <div class="cell" symbol="0" x="1" y="2"></div>
+                                </div>
+                                <div class="row">
+                                    <div class="cell" symbol="0" x="2" y="0"></div>
+                                    <div class="cell" symbol="0" x="2" y="1"></div>
+                                    <div class="cell" symbol="0" x="2" y="2"></div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div id="toolbar">
+                            <div>
+                                <input type="radio" id="tool_edit"
+                                 name="tool_switching" value="edit" checked>
+                                <label for="tool_edit">Edit</label>
+
+                                <input type="radio" id="tool_select"
+                                 name="tool_switching" value="select">
+                                <label for="tool_select">Select</label>
+
+                                <input type="radio" id="tool_floodfill"
+                                 name="tool_switching" value="floodfill">
+                                <label for="tool_floodfill">Flood fill</label>
+                            </div>
+                        </div>
+
+                        <div id="symbol_picker">
+                            <div class="symbol_preview symbol_0 selected-symbol-preview" symbol="0"></div>
+                            <div class="symbol_preview symbol_1" symbol="1"></div>
+                            <div class="symbol_preview symbol_2" symbol="2"></div>
+                            <div class="symbol_preview symbol_3" symbol="3"></div>
+                            <div class="symbol_preview symbol_4" symbol="4"></div>
+                            <div class="symbol_preview symbol_5" symbol="5"></div>
+                            <div class="symbol_preview symbol_6" symbol="6"></div>
+                            <div class="symbol_preview symbol_7" symbol="7"></div>
+                            <div class="symbol_preview symbol_8" symbol="8"></div>
+                            <div class="symbol_preview symbol_9" symbol="9"></div>
+                        </div>
+                        <!-- Removed closing </div> for #edition_view -->
+                    </div> <!-- Closed wrapper div -->
+                    <div id="error_display"></div>
+                    <div id="info_display"></div>
+                </div>
+
+                <!-- Reasoning Trace Section -->
+                <div id="comment_section" style="display: flex; padding: 15px; margin-top: 15px; border-radius: 5px; display: none;"> <!-- Initially hidden, added flex display, removed inline background-color -->
+
+                    <!-- Existing Reasoning Area (3/5 width) -->
+                    <div id="reasoning_area" style="flex: 3; padding-right: 15px;">
+                        <h4>Reasoning Traces for this Task</h4>
+                        <div id="comment_display_area" style="padding: 8px; border: 1px solid #ccc; margin-bottom: 10px; white-space: pre-wrap; word-wrap: break-word; overflow-y: auto;"> <!-- Removed inline min-height and background-color -->
+                            <!-- Current trace text will go here -->
+                            No reasoning traces added yet.
+                        </div>
+                        <div id="comment_controls" style="margin-bottom: 10px;">
+                            <button onclick="previousTrace()" id="prev_comment_btn" disabled>< Prev Trace</button>
+                            <span id="comment_nav_display" style="margin: 0 10px;">Trace -/-</span>
+                            <button onclick="nextTrace()" id="next_comment_btn" disabled>Next Trace ></button>
+                            <span style="margin-left: 20px;">Score: <span id="comment_score_display">0</span></span>
+                            <button onclick="upvoteTrace()" id="upvote_btn" style="margin-left: 10px;">👍 Upvote</button>
+                            <button onclick="downvoteTrace()" id="downvote_btn">👎 Downvote</button>
+                        </div>
+                        <div id="add_comment_area">
+                            <textarea id="new_comment_text" rows="2" style="width: 98%; padding: 5px; margin-bottom: 5px;" placeholder="Add your reasoning trace..."></textarea> <!-- Reduced rows to 2 -->
+                            <button onclick="addTrace()">Add Reasoning Trace</button>
+                            <button onclick="removeCurrentTrace()" id="remove_trace_btn" style="margin-left: 10px;">Remove Trace</button>
+                            <button onclick="downloadData()" id="download_data_btn" style="margin-left: 10px; float: right;">Download Data w/ Traces</button>
+                        </div>
+                    </div>
+
+                    <!-- Transformation Controls Area (Expanded to 2/5 width) -->
+                    <div id="transformation_controls_area" style="flex: 2; padding-left: 15px; padding-right: 15px; border-left: 1px solid #ccc;"> <!-- Adjusted flex and removed right border -->
+                        <h5>Task Transformations</h5>
+                        <div><input type="checkbox" id="transform_transpose" name="transform_transpose"><label for="transform_transpose"> Transpose</label></div>
+                        <div><input type="checkbox" id="transform_reflect_v" name="transform_reflect_v"><label for="transform_reflect_v"> Reflect Vertically</label></div>
+                        <div><input type="checkbox" id="transform_reflect_h" name="transform_reflect_h"><label for="transform_reflect_h"> Reflect Horizontally</label></div>
+                        <hr style="margin: 10px 0;">
+                        <div><input type="checkbox" id="transform_swap_train0_test0" name="transform_swap_train0_test0"><label for="transform_swap_train0_test0"> Swap Train[0] <-> Test[0]</label></div>
+                        <div><input type="checkbox" id="transform_swap_train1_test0" name="transform_swap_train1_test0"><label for="transform_swap_train1_test0"> Swap Train[1] <-> Test[0]</label></div>
+                        <hr style="margin: 15px 0;">
+                        <button onclick="signVariation()" id="sign_variation_btn" style="width: 100%; padding: 8px;">Sign this Variation</button>
+                    </div>
+
+                    <!-- YouTube Video Area Removed -->
+                    <!-- <div id="video_area" style="flex: 1; padding-left: 15px;"> ... </div> -->
+
+                </div>
+                <!-- End Reasoning Trace Section -->
+
+            </div>
+        </div>
+    </body>
+</html>

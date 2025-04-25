@@ -1,0 +1,549 @@
+body {
+    font-family: 'Open Sans', sans-serif;
+    min-width: 1410px;
+    background-color: #1e1e1e; /* Refined Dark background */
+    color: #d4d4d4; /* Adjusted Light text */
+}
+
+#workspace {
+    width: 1410px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex; /* Use Flexbox for layout */
+}
+
+#demonstration_examples_view {
+    /* float: left; Removed float */
+    width: 450px;
+    margin: 10px;
+    margin-right: 5px;
+    background-color: #2d2d2d; /* Refined panel background */
+    border: 1px solid #4a4a4a;
+    border-radius: 5px;
+}
+
+#evaluation_view {
+    /* float: left; Removed float */
+    width: 930px;
+    margin: 10px;
+    margin-left: 5px;
+    background-color: #2d2d2d; /* Refined panel background */
+    border: 1px solid #4a4a4a;
+    border-radius: 5px;
+    min-height: 850px;
+}
+
+#evaluation-input-view {
+    float: left;
+    width: 400px;
+    margin: 10px;
+}
+
+
+#evaluation_output_editor {
+    float: left;
+    width: 500px;
+    margin-bottom: 20px;
+}
+
+#load_task_control_btns {
+    float: left;
+    margin-top: 10px;
+    margin-bottom: 0;
+    background: #3c3c3c; /* Refined control background */
+    border: 1px solid #555;
+    border-radius: 4px;
+    width: 100%;
+    padding: 8px 5px 4px 5px; /* Reduced bottom padding */
+    box-sizing: border-box; /* Include padding in width */
+}
+
+#editor_grid_control_btns {
+    float: left;
+    /* margin-top: 0px; Removed */
+    margin-bottom: 10px;
+    /* background: #3c3c3c; Removed */
+    /* border: 1px solid #555; Removed */
+    /* border-radius: 4px; Removed */
+    width: 100%;
+    padding: 0 5px 8px 5px; /* Removed top padding, adjusted others */
+    box-sizing: border-box; /* Include padding in width */
+}
+
+#resize_control_btns {
+    width: 100%;
+    float:left;
+    margin-bottom: 10px;
+}
+
+#submit_solution_btn {
+    color: white;
+    border-radius: 4px;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+    background: #007acc; /* Changed to Blue */
+    border: none;
+    padding: 8px 15px;
+    cursor: pointer;
+}
+
+#submit_solution_btn:hover {
+    background: #005f9e; /* Darker blue on hover */
+}
+
+#submit_solution_btn:active {
+  background: #004c80; /* Even darker blue when active */
+}
+
+/* Logout Button Styles */
+#logout_btn {
+    color: white;
+    border-radius: 4px;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+    background: #dc3545; /* Red color */
+    border: none;
+    padding: 8px 15px; /* Match submit button size */
+    cursor: pointer;
+    margin-left: 10px; /* Add margin like other buttons */
+}
+
+#logout_btn:hover {
+    background: #c82333; /* Darker red on hover */
+}
+
+#logout_btn:active {
+  background: #bd2130; /* Even darker red when active */
+}
+
+
+button, input[type="button"] {
+    background-color: #3c3c3c; /* Refined button background */
+    color: #d4d4d4; /* Adjusted text color */
+    border: 1px solid #555; /* Adjusted border */
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+button:hover, input[type="button"]:hover {
+    background-color: #4a4a4a; /* Refined hover */
+}
+
+button:active, input[type="button"]:active {
+    background-color: #2a2a2a; /* Refined active */
+}
+
+button:disabled {
+    background-color: #3c3c3c; /* Keep consistent */
+    color: #888;
+    cursor: not-allowed;
+    opacity: 0.6; /* Added opacity for disabled state */
+}
+
+
+button:focus {outline:0;}
+
+#output_grid {
+
+}
+
+#toolbar {
+    float: left;
+    margin-left: 10px;
+    margin-top: 18px;
+    margin-bottom: 10px;
+    width: 100%;
+
+}
+
+#symbol_picker {
+    float: left;
+    margin-left: 20px;
+    width: 100%;
+}
+
+.symbol_preview {
+    width: 25px;
+    height: 25px;
+    float: left;
+}
+
+label {
+    margin-left: 10px;
+    vertical-align: middle; /* Align labels better */
+}
+
+input[type="text"], input[type="number"] {
+    background-color: #3c3c3c; /* Refined input background */
+    color: #d4d4d4; /* Adjusted text color */
+    border: 1px solid #555; /* Adjusted border */
+    padding: 5px;
+    border-radius: 3px;
+    margin-left: 10px;
+}
+
+input:focus {
+    outline: none;
+    border-color: #007acc; /* Highlight focus with theme blue */
+}
+
+
+#resize_btn {
+    margin-left: 0;
+}
+
+/*Task demonstration*/
+
+#task_preview {
+    display: flex;
+    flex-wrap: wrap; /* Allow pairs to wrap to the next line */
+    justify-content: flex-start; /* Align pairs to the start */
+    gap: 10px; /* Add spacing between pairs */
+    padding: 10px; /* Add some padding to the container */
+}
+
+.pair_preview {
+    /* height: 160px; Removed fixed height */
+    padding: 5px;
+    border: solid 1px #4a4a4a; /* Use border instead of border-bottom */
+    border-radius: 4px; /* Add slight rounding */
+    display: flex; /* Use flex to align input/output */
+    align-items: center; /* Vertically center input/output */
+    gap: 10px; /* Space between input and output */
+    /* Removed border-bottom */
+    flex-shrink: 1; /* Allow pair container to shrink if needed */
+    min-width: 0; /* Override default min-width for flex items */
+}
+.input_preview {
+    /* height: 150px; Removed fixed height */
+    /* width: 150px;  Removed fixed width */
+    /* max-width: 180px; Removed max-width */
+    /* max-height: 150px; Removed max-height */
+    /* float: left; Removed float */
+    /* Ensure it can shrink if needed */
+    min-width: 0;
+    min-height: 0;
+}
+.output_preview {
+    /* height: 150px; Removed fixed height */
+    /* width: 150px;  Removed fixed width */
+    /* max-width: 180px; Removed max-width */
+    /* max-height: 150px; Removed max-height */
+    /* float: left; Removed float */
+    /* margin-left: 25px; Removed margin, using gap now */
+    /* Ensure it can shrink if needed */
+    min-width: 0;
+    min-height: 0;
+}
+
+.text {
+    text-align: center;
+    background: #3c3c3c; /* Refined background for text areas */
+    color: #d4d4d4; /* Adjusted text color */
+    padding: 5px 0;
+    margin-bottom: 10px;
+    border-radius: 3px;
+}
+
+#task_demo_header {
+    margin: 10px;
+}
+
+#modal_bg {
+    background-color: black;
+    width: 100%;
+    min-height: 10000px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+}
+
+#modal {
+    margin: auto;
+    background-color: white;
+    text-align: center;
+    padding: 100px;
+    width: 500px;
+    margin-top: 100px;
+}
+
+#modal input {
+    margin-left: 70px;
+}
+
+/* Alignment fix for Go to ID */
+#goto_id_controls { /* Corrected ID */
+    display: inline-flex; /* Use flexbox for alignment */
+    align-items: center; /* Vertically center items */
+    margin-left: 20px; /* Space from previous elements */
+    vertical-align: middle; /* Align the whole group */
+}
+
+#goto_id_controls label { /* Corrected parent ID */
+    margin-left: 0; /* Remove default label margin */
+    margin-right: 5px; /* Space between label and input */
+}
+
+#task_id_input { /* Corrected ID */
+    width: 60px; /* Adjust width as needed */
+    margin-left: 0; /* Remove default input margin */
+    margin-right: 5px; /* Space between input and button */
+}
+
+#goto_task_btn { /* Corrected ID */
+    margin-left: 0; /* Remove default button margin */
+}
+
+/* Alignment fix for Go to Task # */
+#goto_task_number_controls {
+    display: inline-flex; /* Use flexbox for alignment */
+    align-items: center; /* Vertically center items */
+    margin-left: 20px; /* Space from previous elements */
+    vertical-align: middle; /* Align the whole group */
+}
+
+#goto_task_number_controls label {
+    margin-left: 0; /* Remove default label margin */
+    margin-right: 5px; /* Space between label and input */
+}
+
+#task_number_input {
+    width: 40px; /* Adjust width as needed */
+    margin-left: 0; /* Remove default input margin */
+    margin-right: 5px; /* Space between input and button */
+    /* Allow browser default spinner */
+    -moz-appearance: textfield;
+}
+#task_number_input::-webkit-outer-spin-button,
+#task_number_input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+
+#goto_task_number_btn {
+    margin-left: 0; /* Remove default button margin */
+}
+
+
+/* Styles for task list navigation */
+#list_navigation {
+    display: inline-block; /* Keep it on the same line */
+    margin-left: 15px; /* Add some space from the random button */
+    vertical-align: middle; /* Align vertically with other controls */
+}
+
+#list_navigation button {
+    margin-left: 5px; /* Space between buttons and text */
+    margin-right: 5px;
+    padding: 2px 8px; /* Smaller padding */
+}
+
+#list_navigation span {
+    margin-left: 5px;
+    margin-right: 5px;
+    font-size: 0.9em; /* Slightly smaller text */
+}
+
+/* Version Navigation Alignment */
+#version_navigation {
+    display: inline-flex; /* Use flexbox for alignment */
+    align-items: center; /* Vertically center items */
+    vertical-align: middle; /* Align the whole group with others */
+    margin-left: 15px; /* Keep existing margin */
+}
+
+#version_navigation button {
+    margin-left: 5px; /* Space between buttons and text */
+    margin-right: 5px;
+}
+
+#version_navigation span#version_display { /* More specific selector */
+    margin: 0 5px; /* Keep existing margin */
+    font-size: 0.9em; /* Slightly smaller text */
+}
+
+
+/* Comment Section Styles */
+#comment_section {
+    /* clear: both; Removed as parent is flex */
+    background-color: #2d2d2d; /* Match panel background */
+    border: 1px solid #4a4a4a; /* Adjusted border */
+    border-radius: 5px;
+    padding: 10px; /* Reduced padding */
+    margin-top: -50px; /* Made margin more negative to move it higher */
+    display: flex; /* Ensure flex is still applied if HTML was reverted */
+    color: #d4d4d4; /* Set base text color for section */
+    position: relative; /* Added to ensure it layers correctly if needed */
+    z-index: 10; /* Added to ensure it layers correctly if needed */
+}
+
+#comment_section h4, #comment_section h5 { /* Apply to both headings */
+    margin-top: 0;
+    margin-bottom: 10px; /* Reduced margin */
+    color: #aaaaaa; /* Darkened heading text */
+    border-bottom: 1px solid #4a4a4a; /* Adjusted separator line */
+    padding-bottom: 8px; /* Reduced padding */
+}
+
+#comment_display_area {
+    background-color: #3c3c3c; /* Dark background for consistency */
+    border: 1px solid #4a4a4a;
+    color: #d4d4d4; /* Light text for contrast */
+    padding: 8px; /* Reduced padding */
+    min-height: 30px; /* Reduced min-height */
+    margin-bottom: 10px; /* Reduced margin */
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 0.95em;
+    line-height: 1.4;
+    border-radius: 4px;
+    overflow-y: auto; /* Keep overflow from previous HTML change */
+}
+
+#comment_controls {
+    margin-bottom: 15px; /* Space below controls */
+}
+
+#comment_controls span {
+    margin: 0 10px;
+    color: #aaaaaa; /* Adjusted dimmer text */
+}
+
+#comment_controls button {
+    /* Use general button styles */
+    padding: 4px 10px; /* Adjust padding */
+}
+
+#add_comment_area {
+    margin-top: 15px;
+    border-top: 1px solid #555; /* Separator line */
+    padding-top: 10px; /* Reduced space above textarea */
+}
+
+/* Styles for checkbox area labels */
+#checkbox_area label {
+    color: #aaaaaa; /* Darkened label text */
+    margin-left: 5px; /* Adjust spacing */
+}
+
+/* Reduce padding for checkbox and video areas */
+#checkbox_area, #video_area {
+    padding-left: 10px; /* Reduced padding */
+    padding-right: 10px; /* Reduced padding */
+}
+#checkbox_area {
+    border-left: 1px solid #4a4a4a; /* Adjusted border */
+    border-right: 1px solid #4a4a4a; /* Adjusted border */
+}
+
+
+/* Welcome Screen Styles */
+#welcome_screen {
+    background-color: #2d2d2d; /* Refined panel background */
+    color: #d4d4d4; /* Adjusted text color */
+    border: 1px solid #4a4a4a;
+    border-radius: 8px;
+    padding: 30px;
+    margin: 50px auto; /* Center horizontally, add top/bottom margin */
+    width: 600px; /* Set a fixed width */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    text-align: center; /* Center text */
+}
+
+#welcome_screen h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #ffffff; /* Keep Brighter white for header */
+}
+
+#welcome_screen p {
+    margin-bottom: 25px;
+    color: #aaaaaa; /* Adjusted dimmer text */
+}
+
+#welcome_screen div {
+    margin-bottom: 20px; /* Space between rows */
+    display: flex; /* Use flex for alignment within rows */
+    justify-content: center; /* Center items horizontally */
+    align-items: center; /* Center items vertically */
+}
+
+#welcome_screen label {
+    margin-right: 10px; /* Space after labels */
+    margin-left: 0; /* Reset default label margin */
+    color: #aaaaaa; /* Adjusted dimmer text */
+    flex-shrink: 0; /* Prevent labels from shrinking */
+}
+
+#welcome_screen input[type="text"] {
+    /* Use existing input styles */
+    width: 200px; /* Adjust width */
+}
+
+#welcome_screen .dataset_select_btn {
+    /* Use refined general button styles */
+    background-color: #3c3c3c; /* Refined button background */
+    color: #d4d4d4; /* Adjusted text color */
+    border: 1px solid #555; /* Adjusted border */
+    padding: 8px 15px; /* Slightly larger padding */
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 10px; /* Keep margin */
+    transition: background-color 0.2s ease;
+}
+
+#welcome_screen .dataset_select_btn:hover {
+    background-color: #4a4a4a; /* Refined hover */
+}
+
+#welcome_screen .dataset_select_btn:active {
+    background-color: #2a2a2a; /* Refined active */
+}
+
+#username_error {
+    color: #ff6b6b; /* Brighter red for error */
+    margin-left: 10px;
+    font-size: 0.9em;
+}
+
+#loaded_dataset_display {
+    color: #888888; /* Adjusted dimmer color for status */
+    font-style: italic;
+    margin-left: 15px;
+}
+
+
+/* Use general button styles defined earlier */
+/* #comment_controls button, #add_comment_area button {
+    padding: 3px 8px;
+    font-size: 0.9em;
+    cursor: pointer;
+} */
+
+#comment_controls button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+#comment_nav_display, #comment_score_display {
+    font-weight: bold;
+}
+
+#add_comment_area textarea {
+    display: block;
+    width: calc(100% - 12px); /* Account for padding */
+    margin-bottom: 5px;
+    border: 1px solid #555; /* Keep border */
+    background-color: #3c3c3c; /* Refined background */
+    color: #d4d4d4; /* Adjusted text color */
+    padding: 5px;
+    font-family: inherit;
+    border-radius: 4px;
+}
+
+/* Distance Display Styles */
+#distance_display_controls.distance-hidden #distance_value_display {
+    display: none;
+}
