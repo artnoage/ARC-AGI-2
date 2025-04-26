@@ -37,9 +37,9 @@ unified_dataset_data = None # Will hold the loaded dataset.json content
 trace_data = {}
 
 def load_unified_dataset_data():
-    """Loads the unified dataset.json data."""
+    """Loads the unified dataset.json data from the static directory."""
     global unified_dataset_data
-    filepath = os.path.join(DATA_DIR, "dataset.json") # Load dataset.json directly
+    filepath = os.path.join(STATIC_DIR, "dataset.json") # Load dataset.json from static dir
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             unified_dataset_data = json.load(f)
@@ -137,9 +137,9 @@ def backup_trace_data_hourly():
         logging.error(f"Failed to perform hourly backup: {e}")
 
 def save_unified_dataset_data():
-    """Saves the current unified dataset data back to dataset.json."""
+    """Saves the current unified dataset data back to dataset.json in the static directory."""
     global unified_dataset_data
-    filepath = os.path.join(DATA_DIR, "dataset.json")
+    filepath = os.path.join(STATIC_DIR, "dataset.json") # Save dataset.json to static dir
     # TODO: Implement file locking for concurrent writes in production
     try:
         # Optional: Create a backup before overwriting
@@ -180,8 +180,16 @@ def index():
     return send_from_directory(APPS_DIR, 'testing_interface.html') # Serve HTML from apps/
 
 @app.route('/static/<path:filename>')
-def serve_static_files(filename):
-    """Serves static files (CSS, JS, images) from the apps/static directory."""
+def serve_static_files_legacy(filename):
+    """Serves static files (CSS, JS, images) from the apps/static directory via the old /static/ path (if needed)."""
+    # This might become redundant if all requests use /arc2/static/
+    logging.warning(f"Serving static file via legacy /static/ route: {filename}")
+    return send_from_directory(STATIC_DIR, filename)
+
+@app.route('/arc2/static/<path:filename>')
+def serve_static_files_arc2(filename):
+    """Serves static files (CSS, JS, images, dataset.json) from the apps/static directory via the /arc2/static/ path."""
+    logging.debug(f"Serving static file via /arc2/static/ route: {filename}")
     return send_from_directory(STATIC_DIR, filename)
 
 # Keep this route if other things in 'apps/' besides 'static/' and 'testing_interface.html' need serving.
@@ -194,16 +202,7 @@ def serve_apps_files(filename):
         return "Not Found", 404
     return send_from_directory(APPS_DIR, filename)
 
-
-@app.route('/data/dataset.json') # Specific route for dataset.json
-def serve_unified_data():
-    """Serves the unified dataset.json data."""
-    if unified_dataset_data is not None:
-        return jsonify(unified_dataset_data)
-    else:
-        # Log the error server-side as well
-        logging.error("Attempted to serve unified dataset, but it was not loaded successfully.")
-        return jsonify({"error": "Unified dataset 'dataset.json' not found or failed to load on the server."}), 404
+# Removed the old /data/dataset.json route as dataset is now served via /arc2/static/
 
 # --- WebSocket Event Handlers ---
 @socketio.on('connect')

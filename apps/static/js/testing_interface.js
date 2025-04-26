@@ -1298,14 +1298,24 @@ function connectWebSocket() {
 
     socket.on('disconnect', (reason) => {
         console.log('WebSocket disconnected:', reason);
-        errorMsg('Disconnected from real-time server. Refresh may be needed.');
+        // Delay showing disconnection message to avoid frequent popups
+        setTimeout(() => {
+            if (!socket.connected) {
+                errorMsg('Disconnected from real-time server. Refresh may be needed.');
+            }
+        }, 5000); // Wait 5 seconds before showing message
     });
 
     socket.on('connect_error', (error) => {
         console.error('WebSocket connection error:', error);
         // Log the specific error object for more details
         console.error(error); 
-        errorMsg('Failed to connect to real-time server. Check console for details.');
+        // Delay showing connection error message to avoid frequent popups
+        setTimeout(() => {
+            if (!socket.connected) {
+                errorMsg('Failed to connect to real-time server. Check console for details.');
+            }
+        }, 5000); // Wait 5 seconds before showing message
     });
 
     socket.on('connection_ack', (data) => {
