@@ -1293,11 +1293,16 @@ function connectWebSocket() {
 
     socket.on('connect', () => {
         console.log('WebSocket connected successfully. SID:', socket.id);
-        infoMsg('Connected to real-time server.');
+        // Only show connection message if more than 5 seconds have passed since last disconnection
+        if (!window.lastDisconnectTime || (Date.now() - window.lastDisconnectTime) > 5000) {
+            infoMsg('Connected to real-time server.');
+        }
     });
 
     socket.on('disconnect', (reason) => {
         console.log('WebSocket disconnected:', reason);
+        // Store the disconnection time
+        window.lastDisconnectTime = Date.now();
         // Delay showing disconnection message to avoid frequent popups
         setTimeout(() => {
             if (!socket.connected) {
