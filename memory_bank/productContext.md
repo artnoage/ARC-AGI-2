@@ -1,22 +1,19 @@
 # Product Context
 
-## Problem Statement
+## Why this project exists
 
-*   [Describe the core problem this project aims to solve.]
-*   [Who experiences this problem?]
-*   [What are the impacts of this problem?]
+This project aims to develop benchmarking tools for evaluating the abstract reasoning capabilities of models on tasks similar to visual IQ tests, using the ARC dataset.
 
-## Proposed Solution
+## Problems it solves
 
-*   [How will this project address the problem?]
-*   [What is the high-level vision for the solution?]
+*   Provides a standardized way to evaluate model performance on abstract reasoning tasks.
+*   Enables comparison of different models or agent approaches.
 
-## User Experience Goals
+## How it should work
 
-*   [Describe the desired user experience.]
-*   [What are the key principles guiding the user interaction and interface?]
+A simple agent will process tasks from the ARC dataset, feeding training examples to a model. The model's ability to explain the reasoning behind the input-output transformations will be evaluated.
 
-## Key Features & Functionality
+## User experience goals
 
-*   [List the main features and how they contribute to solving the problem.]
-*   [Detail specific functionalities required.]
+*   Easy to configure and run benchmarks.
+*   Clear and understandable output of model reasoning.

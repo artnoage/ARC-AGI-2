@@ -1,25 +1,22 @@
-# Technical Context
+# Tech Context
 
-## Technologies Used
+## Technologies used
 
-*   **Programming Languages:** [List primary languages (e.g., Python, JavaScript)]
-*   **Frameworks/Libraries:** [List key frameworks and libraries (e.g., React, Django, Node.js)]
-*   **Databases:** [Specify databases used (e.g., PostgreSQL, MongoDB)]
-*   **Infrastructure:** [Describe hosting environment, cloud services (e.g., AWS, Azure, Docker)]
-*   **Tooling:** [List important development tools (e.g., Git, Webpack, ESLint)]
+*   Python: For implementing the agent.
+*   ARC Dataset (JSON format): The data source for benchmarking.
+*   (Placeholder for Model Technology): The specific model to be used is TBD.
 
-## Development Setup
+## Development setup
 
-*   [Provide instructions or links to documentation on how to set up the development environment.]
-*   [Include necessary commands for installation, building, and running the project.]
-*   [Specify required software versions (e.g., Node.js v18, Python 3.10).]
+*   Standard Python environment.
+*   Access to the ARC dataset files (`data/dataset.json` or individual files in `data/training/`).
 
-## Technical Constraints
+## Technical constraints
 
-*   [Document any known technical limitations or constraints.]
-*   [Examples: browser compatibility requirements, performance targets, security policies.]
+*   The `data/dataset.json` file is large and cannot be read entirely into memory at once. Processing will need to handle this (e.g., reading individual task files or streaming).
+*   Integration with the model will depend on the model's API and requirements.
 
 ## Dependencies
 
-*   [List major external dependencies or services the project relies on.]
-*   [Mention any specific versions or configurations required for these dependencies.]
+*   Standard Python libraries (e.g., `json`).
+*   (Potential model SDK/library dependency)

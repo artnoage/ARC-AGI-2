@@ -1,29 +1,28 @@
 # System Patterns
 
-## Architecture Overview
+## System architecture
 
-*   [Provide a high-level description of the system architecture (e.g., Monolith, Microservices, Client-Server).]
-*   [Include diagrams (e.g., Mermaid) if helpful to visualize the structure.]
-    ```mermaid
-    graph TD
-        A[Client] --> B(API Gateway);
-        B --> C{Service 1};
-        B --> D{Service 2};
-        C --> E[Database];
-        D --> E;
-    ```
+The current architecture involves a simple agent that interacts with a model. The agent is responsible for preparing the input for the model based on the dataset.
 
-## Key Technical Decisions
+```mermaid
+graph LR
+    A[ARC Dataset] --> B[Simple Agent]
+    B --> C[Model]
+    C --> B
+    B --> D[Reasoning Output]
+```
 
-*   [Document significant architectural or technical choices made.]
-*   [Explain the reasoning behind these decisions and any trade-offs considered.]
+## Key technical decisions
 
-## Design Patterns
+*   The agent is implemented in Python.
+*   The agent uses a system prompt to guide the model's response.
+*   Placeholder for model integration is included.
 
-*   [List the major design patterns employed in the codebase (e.g., MVC, Observer, Singleton).]
-*   [Provide brief examples or locations where these patterns are used.]
+## Design patterns in use
 
-## Component Relationships
+*   Basic modular design with a dedicated agent class.
 
-*   [Describe how major components or modules interact with each other.]
-*   [Detail dependencies between components.]
+## Component relationships
+
+*   The `SimpleAgent` depends on a `Model` instance.
+*   The agent processes data from the ARC dataset.
