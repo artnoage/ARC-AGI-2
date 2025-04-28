@@ -1,0 +1,27 @@
+# Cline Rules - Project Intelligence
+
+This file captures key patterns, preferences, and insights discovered during the project lifecycle. It helps Cline (the AI assistant) work more effectively and consistently within this specific project context.
+
+## Core Principles & Preferences
+
+*   [Document overarching principles or user preferences for development, e.g., "Prefer functional components in React," "Always include unit tests for new backend logic."]
+
+## Important Implementation Patterns
+
+*   [Describe recurring code structures or architectural patterns specific to this project, e.g., "State management follows the Redux pattern with specific middleware," "API error handling uses a centralized middleware."]
+
+## Tooling & Workflow Notes
+
+*   [Record project-specific tool usage or workflow steps, e.g., "Use `npm run lint:fix` before committing," "Deployment requires manual approval step X."]
+
+## Known Challenges & Workarounds
+
+*   [Note any persistent technical challenges or established workarounds, e.g., "Legacy module X has performance issues under load; use caching strategy Y," "Browser compatibility issue with Z requires specific CSS hack."]
+
+## Decision Log
+
+*   [Optionally, track significant decisions and their rationale if not covered elsewhere.]
+
+---
+
+*This file is maintained by Cline and the user. Add new rules and insights as they are discovered.*
