@@ -6,6 +6,20 @@ This repository is a modified version of the original [Abstraction and Reasoning
 
 A foundational description of the original dataset, its goals, and its underlying logic, can be found in: [On the Measure of Intelligence](https://arxiv.org/abs/1911.01547) and the [ARC-AGI-2 Presentation](https://docs.google.com/presentation/d/1hQrGh5YI6MK3PalQYSQs4CQERrYBQZue8PBLjjHIMgI/edit?usp=sharing).
 
+## Project History: Synthetic Data Generation Interface (Phase 1)
+
+The initial phase of this project focused on adapting the original ARC-AGI interface to facilitate the **collective creation of synthetic data**. The goal was to generate richer data capturing not just solutions, but also the reasoning process and task variations.
+
+Key features developed during this phase include:
+
+*   **Testing Interface (`apps/testing_interface.html`):** A web-based UI for solving ARC tasks.
+*   **Task Transformations:** Tools within the interface to apply transformations (reflection, rotation, etc.) to tasks, generating variations.
+*   **Reasoning Traces:** Functionality for users to add step-by-step explanations for their solutions.
+*   **Distance Metric:** UI feedback indicating the closeness of an attempted solution to the target.
+*   **Data Structure:** Defined in `data/nature_of_data.md`, tracking task versions and contributions.
+
+This phase established the foundation for working with ARC tasks and exploring methods beyond simple solution finding.
+
 ## Focus: Collective Synthetic Data Generation
 
 While leveraging the core ARC tasks, this interface introduces new features specifically designed to facilitate the generation of rich, structured synthetic data. This data aims to capture not just the solutions to reasoning problems, but also the process and variations involved.
@@ -50,3 +64,30 @@ Click the "Submit!" button to check your answer for the current test input. Afte
 ### Data Contribution
 
 By adding reasoning traces or signing transformed task variations, users collectively contribute to building a richer, more informative dataset for AGI research.
+
+## Benchmarking Agent Reasoning
+
+This project now includes a benchmarking suite designed to evaluate the reasoning capabilities of language models on ARC tasks.
+
+### Functionality
+
+The benchmark works as follows:
+1.  It loads ARC task files from a specified directory (`data/training/` by default).
+2.  For each task, it uses a `SimpleAgent` to interact with a configured language model (e.g., a local model via Ollama or an external API like OpenRouter).
+3.  The agent presents the 'train' examples from the task to the model.
+4.  The model is prompted (using a system prompt defined in `benchmark/simple_agent.py`) to explain its reasoning process for deriving the output grids from the input grids based on the provided training examples.
+5.  The generated reasoning is saved to a JSON file in the `data/evaluation/` directory (filename based on the task ID).
+
+This allows for systematic evaluation of how well different models can understand and articulate the underlying logic of ARC tasks.
+
+### Configuration
+
+Model selection (local vs. OpenRouter, specific model names) and other parameters (temperature, API keys, task directory) are configured in `benchmark/config.py`. Ensure your `.env` file contains the necessary API keys (e.g., `OPENROUTER_API_KEY`) if using external models, or that your local model server is running.
+
+### Running the Benchmark
+
+To run the benchmark, execute the following command from the project's root directory:
+
+```bash
+python benchmark/run_benchmark.py
+```

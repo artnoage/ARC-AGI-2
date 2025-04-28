@@ -2,28 +2,37 @@
 
 ## What works
 
-*   Created the `benchmark` directory.
-*   Created the `benchmark/simple_agent.py` file with the basic agent structure and system prompt.
-*   Initialized memory bank documentation files.
-*   Created the core benchmark structure files:
-    *   `benchmark/config.py`: Handles configuration, including model selection (`ModelOption`) and parameters.
-    *   `benchmark/data_loader.py`: Handles loading individual ARC task files.
-    *   `benchmark/model_utils.py`: Provides model instantiation (`get_model`) and API interaction logic (local/OpenRouter) with retries.
-    *   `benchmark/simple_agent.py`: Asynchronous agent logic (`get_reasoning`) using `model_utils`.
-    *   `benchmark/run_benchmark.py`: Asynchronous orchestration script integrating config, data loading, model initialization, agent processing, and result saving.
+**Phase 1: Synthetic Data Generation Interface (Completed)**
+*   Web-based testing interface (`apps/testing_interface.html`) for ARC tasks.
+*   Functionality for task transformations (reflection, rotation, etc.).
+*   Functionality for adding/managing reasoning traces.
+*   Distance metric UI feedback.
+*   Data structure definition (`data/nature_of_data.md`).
 
-## What's left to build
+**Phase 2: Benchmarking Agent Reasoning (Implemented, Needs Testing)**
+*   `benchmark/` directory structure established.
+*   Core components implemented:
+    *   `config.py`: Handles configuration (models, parameters, paths).
+    *   `data_loader.py`: Loads individual ARC task files.
+    *   `model_utils.py`: Manages model instantiation and API interactions (local/OpenRouter) with retries.
+    *   `simple_agent.py`: Contains the agent logic for prompting the model.
+    *   `run_benchmark.py`: Orchestrates the benchmark execution (async).
+*   Memory Bank and `readme.md` updated to reflect both phases.
 
-*   Testing the full benchmark execution with a configured and running model (local server or OpenRouter API key).
-*   Potential refinement of results format or logging.
-*   Optional: Add command-line argument parsing for configuration.
-*   Optional: Add more advanced features (statistics, progress tracking) if needed later.
+## What's left to build (Phase 2)
+
+*   Execute and thoroughly test the benchmark (`python benchmark/run_benchmark.py`) with live model endpoints (local server / OpenRouter API key).
+*   Analyze generated reasoning outputs (`data/evaluation/`).
+*   Refine results format, logging, or agent prompting based on testing.
+*   Consider adding command-line arguments for configuration flexibility.
+*   Potentially add more advanced analysis or reporting features later.
 
 ## Current status
 
-The benchmark structure is complete and integrates the model calling logic adapted from the `old_project`. It is ready for testing with a live model endpoint.
+*   **Phase 1 is complete.** The synthetic data generation interface is functional.
+*   **Phase 2 is implemented.** The benchmarking suite structure is complete and integrates model interaction logic. It is ready for execution and testing against actual models.
 
-## Known issues
+## Known issues (Phase 2)
 
-*   The data loading strategy uses individual files from the configured directory, avoiding issues with the large `data/dataset.json`.
-*   Requires testing with a live model endpoint (local server or OpenRouter API key).
+*   Requires configuration (`benchmark/config.py`, `.env`) and testing with live model endpoints.
+*   Performance and quality of reasoning output depend heavily on the chosen model and prompting strategy.

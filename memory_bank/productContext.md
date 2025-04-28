@@ -2,18 +2,21 @@
 
 ## Why this project exists
 
-This project aims to develop benchmarking tools for evaluating the abstract reasoning capabilities of models on tasks similar to visual IQ tests, using the ARC dataset.
+This project adapts the ARC-AGI framework for two primary purposes:
+1.  **Phase 1:** To facilitate the collective generation of rich synthetic data (task variations, reasoning traces) around abstract reasoning problems.
+2.  **Phase 2:** To develop tools for benchmarking the reasoning capabilities of language models on ARC tasks.
 
 ## Problems it solves
 
-*   Provides a standardized way to evaluate model performance on abstract reasoning tasks.
-*   Enables comparison of different models or agent approaches.
+*   **Phase 1:** Addresses the need for more detailed data beyond simple input-output pairs for training and evaluating reasoning systems. Captures human problem-solving processes and explores task variations.
+*   **Phase 2:** Provides a standardized way to evaluate and compare how well different language models can understand and explain the logic behind ARC tasks.
 
 ## How it should work
 
-A simple agent will process tasks from the ARC dataset, feeding training examples to a model. The model's ability to explain the reasoning behind the input-output transformations will be evaluated.
+*   **Phase 1:** A web-based interface (`apps/testing_interface.html`) allows users to solve ARC tasks, apply transformations, and add step-by-step reasoning traces. This generated data is stored with metadata.
+*   **Phase 2:** A benchmarking script (`benchmark/run_benchmark.py`) uses a `SimpleAgent` to feed ARC task training examples to a configured language model. The model is prompted to explain its reasoning, and this output is saved for evaluation.
 
 ## User experience goals
 
-*   Easy to configure and run benchmarks.
-*   Clear and understandable output of model reasoning.
+*   **Phase 1:** An intuitive interface for task interaction, transformation, and reasoning annotation. Clear feedback mechanisms (like the distance metric).
+*   **Phase 2:** Easy configuration and execution of benchmarks. Clear, structured output of model reasoning for analysis.
