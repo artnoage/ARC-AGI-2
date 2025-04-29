@@ -1,5 +1,7 @@
 import os
 import asyncio
+import logging # Import logging
+import json # Import json module
 # Removed signal import
 import aiohttp
 from dotenv import load_dotenv
@@ -25,10 +27,12 @@ class OpenRouterChat:
         self.temperature = temperature
         self.api_key = api_key
         self.base_url = "https://openrouter.ai/api/v1/chat/completions"
+        logging.debug(f"OpenRouterChat initialized for model: {self.model}")
 
     async def ainvoke(self, prompt: Any, **kwargs: Any) -> Any:
         """Async call to OpenRouter chat completion endpoint"""
         max_tokens = kwargs.get("max_tokens", None)
+        logging.debug(f"OpenRouterChat.ainvoke called for model: {self.model}")
 
         # Simplified: Assume prompt is always a list of message dicts
         # as provided by SimpleAgent
@@ -46,28 +50,54 @@ class OpenRouterChat:
             payload["max_tokens"] = max_tokens
 
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
+            # Log headers without sensitive info for debugging
+            "Authorization": f"Bearer {'*' * (len(self.api_key) - 4) + self.api_key[-4:] if self.api_key else 'None'}",
+            "Content-Type": "application/json",
+            # Add other non-sensitive headers if needed
         }
+        logging.debug(f"OpenRouter Request Payload: {json.dumps(payload, indent=2)}") # Log payload
+        logging.debug(f"OpenRouter Request Headers: {headers}") # Log headers (API key masked)
+
 
         # Create a new session for each request
         async with aiohttp.ClientSession() as session:
             try:
+                logging.debug(f"Sending POST request to {self.base_url}")
+                # Use original headers with full API key for the actual request
+                actual_headers = {
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                }
                 async with session.post(
                     self.base_url,
                     json=payload,
-                    headers=headers
+                    headers=actual_headers # Use actual headers here
                 ) as response:
-                    if response.status != 200:
-                        raise ValueError(f"Error from OpenRouter API: {await response.text()}")
+                    response_text = await response.text() # Read response text once
+                    logging.info(f"OpenRouter Response Status: {response.status}")
+                    logging.debug(f"OpenRouter Raw Response Body: {response_text}") # Log raw response
 
-                    result = await response.json()
+                    if response.status != 200:
+                         # Log the error before raising
+                        logging.error(f"Error from OpenRouter API ({response.status}): {response_text}")
+                        raise ValueError(f"Error from OpenRouter API ({response.status}): {response_text}")
+
+                    try:
+                        result = json.loads(response_text) # Parse the stored text
+                    except json.JSONDecodeError:
+                        logging.error(f"Failed to decode JSON response from OpenRouter: {response_text}")
+                        raise ValueError(f"Failed to decode JSON response from OpenRouter.")
+
+                    content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    logging.debug(f"Extracted content: '{content[:100]}...'") # Log extracted content snippet
+
                     # Return simple object with .content attribute
-                    return type('Response', (), {
-                        'content': result.get("choices", [{}])[0].get("message", {}).get("content", "")
-                    })()
+                    return type('Response', (), {'content': content})()
+            except aiohttp.ClientError as e:
+                logging.error(f"Network error during OpenRouter request: {e}", exc_info=True)
+                raise # Re-raise network errors
             except Exception as e:
-                print(f"Exception in OpenRouterChat.ainvoke: {str(e)}")
+                logging.error(f"Exception in OpenRouterChat.ainvoke: {e}", exc_info=True) # Log other exceptions
                 raise
 
 
@@ -276,6 +306,7 @@ def get_model(config: ARCBenchmarkConfig, role: str = "main"):
         config: The ARCBenchmarkConfig instance
         role: The role of the model (e.g. "main", "auxiliary", etc.) - currently only 'main' is relevant
     """
+    logging.debug(f"get_model called for role: {role}, identifier: {config.model_identifier}")
     # Get model name string from config based on role
     # Assuming config will have attributes like 'main_model_name', 'aux_model_name' etc.
     # For now, using the single 'model_identifier' and hardcoding role='main' logic
@@ -285,7 +316,9 @@ def get_model(config: ARCBenchmarkConfig, role: str = "main"):
     try:
         model_enum_member = ModelOption[model_name_str]
         model_value = model_enum_member.value # e.g., "/Home/stat/...", "anthropic/claude..."
+        logging.debug(f"Resolved model enum: {model_enum_member.name}, value: {model_value}")
     except KeyError:
+        logging.error(f"Invalid model identifier in config: {model_name_str}")
         raise ValueError(f"Invalid model identifier in config: {model_name_str}. Must be a valid ModelOption name.")
 
     # Get temperature and template based on role (simplified for now)
@@ -301,29 +334,39 @@ def get_model(config: ARCBenchmarkConfig, role: str = "main"):
     # Check if it's a local model based on the enum member name
     if model_enum_member.name.startswith("LOCAL_"):
         port = getattr(config, f'{role}_port', 8000) # Default port if not set
-
+        logging.info(f"Initializing LOCAL model: {model_enum_member.name} ({model_value}) on port {port} using template {template}")
         # Choose between CustomChat and CustomChat2 based on template setting
         if template == 2:
-            return CustomChat2(
-                model=model_value, # Use the actual path/name from enum value
+            model_instance = CustomChat2(
+                model=model_value,
                 temperature=temp,
                 api_key="EMPTY",
                 base_url=f"http://localhost:{port}/v1")
         else: # Default to template 1
-            return CustomChat(
-                model=model_value, # Use the actual path/name from enum value
+            model_instance = CustomChat(
+                model=model_value,
                 temperature=temp,
                 api_key="EMPTY",
                 base_url=f"http://localhost:{port}/v1")
+        logging.debug(f"Local model instance created: {type(model_instance).__name__}")
+        return model_instance
     else: # Assume OpenRouter model
+        logging.info(f"Initializing OpenRouter model: {model_enum_member.name} ({model_value})")
         openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
         if not openrouter_api_key:
+            logging.error("OPENROUTER_API_KEY environment variable not found.")
             raise ValueError("OPENROUTER_API_KEY is not set in the environment variables.")
+        else:
+            # Log partial key for verification without exposing the full key
+            masked_key = '*' * (len(openrouter_api_key) - 4) + openrouter_api_key[-4:]
+            logging.info(f"Found OPENROUTER_API_KEY ending in: {masked_key}")
 
-        return OpenRouterChat(
-            model=model_value, # Use the actual model name from enum value
+        model_instance = OpenRouterChat(
+            model=model_value,
             temperature=temp,
             api_key=openrouter_api_key)
+        logging.debug(f"OpenRouter model instance created: {type(model_instance).__name__}")
+        return model_instance
 
 
 def async_retry(max_retries: int = 3, timeout: int = 120):
@@ -333,34 +376,42 @@ def async_retry(max_retries: int = 3, timeout: int = 120):
             retry_count = 0
             while retry_count < max_retries:
                 try:
-                    return await asyncio.wait_for(func(*args, **kwargs), timeout=timeout)
+                    # Use logging instead of print
+                    logging.debug(f"Calling decorated function: {func.__name__}")
+                    result = await asyncio.wait_for(func(*args, **kwargs), timeout=timeout)
+                    logging.debug(f"Decorated function {func.__name__} completed successfully.")
+                    return result
                 except asyncio.TimeoutError:
                     retry_count += 1
-                    print(f"Timeout occurred. Retrying ({retry_count}/{max_retries})...")
+                    logging.warning(f"Timeout occurred calling {func.__name__}. Retrying ({retry_count}/{max_retries})...")
                     if retry_count == max_retries:
-                        print("Max retries reached after timeout.")
+                        logging.error(f"Max retries reached for {func.__name__} after timeout.")
                         raise
                     await asyncio.sleep(1) # Wait before retrying
                 except Exception as e:
                     retry_count += 1
-                    print(f"Error occurred: {e}. Retrying ({retry_count}/{max_retries})...")
+                    logging.warning(f"Error occurred calling {func.__name__}: {e}. Retrying ({retry_count}/{max_retries})...", exc_info=True) # Log traceback
                     if retry_count == max_retries:
-                        print("Max retries reached after error.")
+                        logging.error(f"Max retries reached for {func.__name__} after error.")
                         raise
                     await asyncio.sleep(1) # Wait before retrying
             # This part should ideally not be reached if max_retries > 0
-            raise Exception(f"Failed after {max_retries} retries")
+            logging.critical(f"Logic error: Exited retry loop for {func.__name__} without success or max retries exception.")
+            raise Exception(f"Failed {func.__name__} after {max_retries} retries")
         return wrapper
     return decorator
 
 @async_retry(max_retries=3, timeout=120)
 async def get_model_response(model, prompt, max_tokens=None) -> str:
     """Get response from model with retry logic"""
+    logging.debug(f"get_model_response called for model type: {type(model).__name__}")
     try:
         response = await model.ainvoke(prompt, max_tokens=max_tokens)
-        return response.content
+        # Log raw response content before returning
+        raw_content = getattr(response, 'content', 'N/A') # Safely get content
+        logging.debug(f"Raw response content from model.ainvoke: '{str(raw_content)[:200]}...'")
+        return raw_content
     except Exception as e:
-        print(f"Error in get_model_response (will be retried): {e}")
-        # Add small delay before retry to prevent overwhelming API
-        await asyncio.sleep(0.1)
+        # Error is already logged by the retry decorator or ainvoke, just re-raise
+        logging.debug(f"get_model_response raising exception for retry: {e}")
         raise # Re-raise the exception for the retry decorator to catch

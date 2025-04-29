@@ -5,23 +5,16 @@ from enum import Enum
 class ModelOption(Enum):
     """Enum class representing different model options."""
     # Add model options based on old_project/model_utils.py or user needs
-    CLAUDE = "anthropic/claude-3.5-sonnet"
-    GEMINI_PRO = "google/gemini-pro-1.5"
+    CLAUDE = "anthropic/claude-3.7-sonnet"
+    GEMINI_PRO = "google/gemini-2.5-pro-preview-03-25"
     GEMINI_FLASH="google/gemini-2.5-flash-preview"
-    GPT = "openai/gpt-4o"
-    GPT_MINI="openai/gpt-4o-mini"
-    MASTER = "openai/o1-preview-2024-09-12"
-    MASTER_MINI="openai/o1-mini"
     LOCAL_0= "/Home/stat/laschos/math/AIMO2_initial/models/7BSR2" # Example path, adjust as needed
     LOCAL_1= "/Home/stat/laschos/math/AIMO2_initial/models/14BR1" # Example path, adjust as needed
     LOCAL_2= "/Home/stat/laschos/math/AIMO2_initial/models/14BR2" # Example path, adjust as needed
     # Add other models from the old config if needed
-    NEMOTRON= "nvidia/llama-3.1-nemotron-70b-instruct"
-    MISTRAL="mistralai/mistral-small-24b-instruct-2501"
     CODER="qwen/qwen-2.5-coder-32b-instruct"
-    DEEP="deepseek/deepseek-chat"
-    QWEN="qwen/qwq-32b"
-    NANO="openai/gpt-4.1-nano"
+    QWEN="qwen/qwen3-235b-a22b"
+
 
 @dataclass
 class ARCBenchmarkConfig:

@@ -13,6 +13,7 @@ class SimpleAgent:
                    that has an async `ainvoke` method.
         """
         self.model = model
+        logging.debug(f"SimpleAgent initialized with model type: {type(model).__name__}")
         self.system_prompt = """
 You are participating in a visual IQ test. You will be presented with a series of input-output grid pairs that demonstrate a hidden pattern or transformation rule. Your task is to analyze these examples, understand the underlying reasoning, and explain the logic you would use to generate the output grid from a given input grid based on the observed pattern.
 
@@ -28,14 +29,17 @@ Focus on explaining the reasoning process clearly and concisely.
 
         Returns:
             A tuple containing:
-            - The generated prompt string (or None if error).
+            - The full list of message dictionaries sent to the model (or None if error).
             - The reasoning string from the model (or None if error).
         """
+        logging.debug(f"SimpleAgent.get_reasoning called with task data: {json.dumps(task_data)[:200]}...")
+        
         if 'train' not in task_data or not task_data['train']:
             logging.warning("Task data does not contain valid 'train' examples.")
             return None, None
 
         train_examples = task_data['train']
+        logging.debug(f"Found {len(train_examples)} training examples")
 
         # Prepare the prompt in a structured format suitable for model_utils
         # The model_utils classes expect a list of message dicts or LangChain objects.
@@ -43,6 +47,7 @@ Focus on explaining the reasoning process clearly and concisely.
         messages = [
             {"role": "system", "content": self.system_prompt}
         ]
+        logging.debug(f"Added system prompt: {self.system_prompt[:50]}...")
 
         user_content = "Here are the training examples:\n\n"
         for i, example in enumerate(train_examples):
@@ -61,19 +66,37 @@ Focus on explaining the reasoning process clearly and concisely.
 
         user_content += "Based on these examples, explain the reasoning process to transform an input grid to an output grid."
         messages.append({"role": "user", "content": user_content})
+        logging.debug(f"Added user content (length: {len(user_content)})")
+        logging.debug(f"Final messages structure: {len(messages)} messages")
+        
+        # Log the full messages structure for debugging
+        for i, msg in enumerate(messages):
+            role = msg.get("role", "unknown")
+            content_preview = msg.get("content", "")[:50] + "..." if msg.get("content") else "None"
+            logging.debug(f"Message {i+1} - Role: {role}, Content preview: {content_preview}")
 
         # Use the retry-enabled function to get the model response
         try:
+            logging.info(f"Sending request to model ({type(self.model).__name__})")
             # Note: model_utils.ainvoke expects a list of messages
             # We use get_model_response which wraps the model's ainvoke with retries
             reasoning = await get_model_response(self.model, messages)
-            # The prompt sent to the model might be formatted differently by model_utils,
-            # so returning the structured 'messages' list might be more accurate than a single string.
-            # For simplicity now, return the user_content part as the 'prompt'.
-            return user_content, reasoning
+            
+            # Log the response length and a preview
+            if reasoning:
+                reasoning_length = len(reasoning)
+                reasoning_preview = reasoning[:100] + "..." if reasoning_length > 100 else reasoning
+                logging.info(f"Received model response (length: {reasoning_length})")
+                logging.debug(f"Response preview: {reasoning_preview}")
+            else:
+                logging.warning("Received empty response from model")
+                
+            # Return the full messages list and the reasoning
+            return messages, reasoning
         except Exception as e:
-            logging.error(f"Error getting model response: {e}")
-            return user_content, f"Error: {e}"
+            logging.error(f"Error getting model response: {e}", exc_info=True)
+            # Return the messages list even on error, so it can be logged if needed
+            return messages, f"Error: {e}"
 
 
 # Example Async Usage (requires an async environment to run)
