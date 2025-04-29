@@ -45,15 +45,15 @@ def merge_reasoning_into_traces(benchmark_results_path: str, traces_path: str):
                 traces_data = json.load(f)
             logging.info(f"Loaded {len(traces_data)} existing trace entries.")
         else:
-            traces_data = []
-            logging.warning(f"Traces file not found: {traces_path}. Starting with an empty traces list.")
+            traces_data = {}
+            logging.warning(f"Traces file not found: {traces_path}. Starting with an empty traces dictionary.")
 
     except json.JSONDecodeError:
-        logging.error(f"Error decoding traces JSON: {traces_path}. Starting with an empty traces list to avoid data corruption.")
-        traces_data = []
+        logging.error(f"Error decoding traces JSON: {traces_path}. Starting with an empty traces dictionary to avoid data corruption.")
+        traces_data = {}
     except Exception as e:
-        logging.error(f"An error occurred while reading traces: {e}. Starting with an empty traces list to avoid data corruption.")
-        traces_data = []
+        logging.error(f"An error occurred while reading traces: {e}. Starting with an empty traces dictionary to avoid data corruption.")
+        traces_data = {}
 
 
     logging.info(f"Merging reasoning for model: {model_username}")
@@ -66,21 +66,47 @@ def merge_reasoning_into_traces(benchmark_results_path: str, traces_path: str):
             logging.debug(f"Skipping task_id {task_id}: Missing ID, reasoning, or contains error.")
             continue
 
-        # Find the corresponding entry in traces_data by task_id
-        # Assuming traces_data is a list of dictionaries, each with a 'task_id'
-        trace_entry = next((item for item in traces_data if item.get("task_id") == task_id), None)
+        # Check if the task_id exists in traces_data
+        if task_id in traces_data:
+            # If task_id exists, create a new trace entry for this reasoning
+            logging.info(f"Task_id: {task_id} found. Creating a new trace entry for new reasoning.")
+            import uuid
+            import time
 
-        if trace_entry:
-            # Add the reasoning under the model_username key
-            if "reasoning_traces" not in trace_entry:
-                trace_entry["reasoning_traces"] = {}
-
-            # Store the reasoning. If the key already exists, it will be overwritten.
-            trace_entry["reasoning_traces"][model_username] = reasoning
-            logging.debug(f"Merged reasoning for task_id: {task_id} under username: {model_username}")
+            new_trace_id = f"{task_id}_{model_username}_{uuid.uuid4().hex[:8]}"
+            new_trace_entry = {
+                "trace_id": new_trace_id,
+                "task_id": task_id,
+                "username": model_username,
+                "text": reasoning, # Store reasoning directly in text
+                "score": 0,
+                "timestamp": time.time(),
+                "voters": {}
+            }
+            traces_data[task_id].append(new_trace_entry)
+            logging.info(f"Created new trace entry for task_id: {task_id} with trace_id: {new_trace_id}")
             merged_count += 1
         else:
-            logging.warning(f"No matching trace entry found for task_id: {task_id}. Skipping merge for this task.")
+            # Create a new entry for this task_id if it doesn't exist
+            logging.info(f"No trace entry found for task_id: {task_id}. Creating a new entry.")
+            import uuid
+            import time
+
+            new_trace_id = f"{task_id}_{model_username}_{uuid.uuid4().hex[:8]}"
+            new_trace_entry = {
+                "trace_id": new_trace_id,
+                "task_id": task_id,
+                "username": model_username,
+                "text": reasoning, # Store reasoning directly in text
+                "score": 0,
+                "timestamp": time.time(),
+                "voters": {}
+            }
+
+            # Add the new trace entry to traces_data
+            traces_data[task_id] = [new_trace_entry]
+            logging.info(f"Created new trace entry for task_id: {task_id} with trace_id: {new_trace_id}")
+            merged_count += 1
 
     logging.info(f"Finished merging. Merged reasoning for {merged_count} tasks.")
 
@@ -103,8 +129,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--traces_path",
         type=str,
-        default="../data/traces_store.json", # Default path to the traces file
-        help="Path to the traces JSON file (default: ../data/traces_store.json)."
+        default="data/traces_store.json", # Default path to the traces file
+        help="Path to the traces JSON file (default: data/traces_store.json)."
     )
 
     args = parser.parse_args()
