@@ -21,7 +21,7 @@
     *   Enhanced logging (DEBUG level, file output) added across benchmark scripts.
     *   JSON output format improved (metadata, full prompts, model username).
 *   Auxiliary utility created:
-    *   `auxiliary_utilities/merge_reasoning.py`: Merges benchmark reasoning into `data/traces_store.json`.
+    *   `auxiliary_utilities/merge_reasoning.py`: Merges benchmark reasoning into `data/traces_store.json`, storing reasoning in the `text` field and creating new entries for each merged reasoning trace for an existing task ID.
 *   Memory Bank and `readme.md` updated to reflect both phases and recent changes.
 
 ## What's left to build (Phase 2)

@@ -56,7 +56,7 @@ graph LR
 ```
 *   A Python-based command-line application orchestrates the benchmarking process, configurable via `config.py` and command-line arguments.
 *   Components handle configuration, data loading, agent logic, model interaction, and result saving (including metadata and full prompts).
-*   Auxiliary utilities (e.g., `merge_reasoning.py`) can process the benchmark results and integrate them with other data stores like the trace JSON.
+*   Auxiliary utilities (e.g., `auxiliary_utilities/merge_reasoning.py`) process the benchmark results and integrate them with the trace store (`data/traces_store.json`), storing reasoning in the `text` field and creating new entries for each merged reasoning trace for an existing task ID.
 
 ## Key technical decisions
 
@@ -71,4 +71,4 @@ graph LR
 ## Component relationships
 
 *   **Phase 1:** UI depends on ARC data format. Data storage format defined in `data/nature_of_data.md`.
-*   **Phase 2:** `run_benchmark.py` orchestrates other benchmark modules. `SimpleAgent` depends on `model_utils.py` and data from `data_loader.py`. `model_utils.py` abstracts model interactions. Configuration (`config.py` + CLI args) drives behavior. `auxiliary_utilities/merge_reasoning.py` processes output from `run_benchmark.py` and updates `data/traces_store.json`.
+*   **Phase 2:** `run_benchmark.py` orchestrates other benchmark modules. `SimpleAgent` depends on `model_utils.py` and data from `data_loader.py`. `model_utils.py` abstracts model interactions. Configuration (`config.py` + CLI args) drives behavior. `auxiliary_utilities/merge_reasoning.py` processes output from `run_benchmark.py` and updates `data/traces_store.json`, storing reasoning in the `text` field and creating new entries for each merged reasoning trace for an existing task ID.

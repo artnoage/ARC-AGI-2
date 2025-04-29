@@ -14,7 +14,7 @@ This project adapts the ARC-AGI framework for two primary purposes:
 ## How it should work
 
 *   **Phase 1:** A web-based interface (`apps/testing_interface.html`) allows users to solve ARC tasks, apply transformations, and add step-by-step reasoning traces. This generated data is stored with metadata.
-*   **Phase 2:** A benchmarking script (`benchmark/run_benchmark.py`), configurable via command-line arguments, uses a `SimpleAgent` to feed ARC task training examples to a selected language model. The model is prompted to explain its reasoning, and this output (including the full prompt and model details) is saved for evaluation. An auxiliary script (`auxiliary_utilities/merge_reasoning.py`) allows merging this reasoning into the main trace data.
+*   **Phase 2:** A benchmarking script (`benchmark/run_benchmark.py`), configurable via command-line arguments, uses a `SimpleAgent` to feed ARC task training examples to a selected language model. The model is prompted to explain its reasoning, and this output (including the full prompt and model details) is saved for evaluation. An auxiliary script (`auxiliary_utilities/merge_reasoning.py`) allows merging this reasoning into the main trace data, storing the reasoning directly in the `text` field and creating a new trace entry for each merged reasoning trace for an existing task ID.
 
 ## User experience goals
 

@@ -17,7 +17,7 @@ The project is currently in **Phase 2: Benchmarking Agent Reasoning**. Following
     *   Added command-line argument parsing (`argparse`) to `run_benchmark.py` for dynamic configuration (`--model_identifier`, `--max_tasks`).
     *   Enhanced logging (DEBUG level, file output to `benchmark_debug.log`) across benchmark scripts.
     *   Improved JSON output format to include metadata (model username, timestamp, etc.) and the full prompt messages sent to the model.
-*   Created auxiliary script `auxiliary_utilities/merge_reasoning.py` to merge benchmark reasoning into `data/traces_store.json`.
+*   Refined auxiliary script `auxiliary_utilities/merge_reasoning.py` to merge benchmark reasoning into `data/traces_store.json`, ensuring reasoning is stored in the `text` field and new entries are created for each merged reasoning trace for an existing task ID.
 *   Updated Memory Bank files to reflect project history and current phase.
 *   Updated `readme.md` to include documentation for both Phase 1 and Phase 2 (including benchmark usage).
 
