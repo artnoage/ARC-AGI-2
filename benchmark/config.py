@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 import os
 from enum import Enum
+from typing import Optional
 
 class ModelOption(Enum):
     """Enum class representing different model options."""
@@ -26,7 +27,7 @@ class ARCBenchmarkConfig:
     main_temp: float = 0.1 # Temperature for the main model (Default: 0.0 for deterministic output)
     main_port: int = 8000 # Port if using a local model for the 'main' role
     main_template: int = 1 # Template type (1 or 2) for local models
-    max_tokens: int = 40000 # Maximum number of tokens to generate (Default: None for no limit)
+    max_tokens: int = None # Maximum number of tokens to generate (Default: None for no limit)
 
     # --- Dataset Settings ---
     # Path to the directory containing ARC task JSON files
@@ -35,6 +36,12 @@ class ARCBenchmarkConfig:
     task_ids: list[str] = None
     # Optional: Limit the number of tasks to process. If None, runs all specified (or found).
     max_tasks: int = None
+    # Optional: Use dataset.json instead of individual files
+    use_dataset_json: bool = False
+
+    # --- Concurrency Settings ---
+    # Maximum number of tasks to process concurrently
+    max_concurrent_tasks: int = 5 # Default concurrency limit
 
     # --- Output Settings ---
     # Directory to save benchmark results
@@ -43,32 +50,61 @@ class ARCBenchmarkConfig:
     # --- Internal ---
     # Field to store the absolute path to the task directory after initialization
     _task_dir_absolute: str = field(init=False, repr=False)
+    _dataset_file_absolute: str = field(init=False, repr=False)
 
     def __post_init__(self):
         """Validate paths and create output directory."""
-        # Resolve the task directory path relative to this config file's location
         config_dir = os.path.dirname(os.path.abspath(__file__))
-        self._task_dir_absolute = os.path.abspath(os.path.join(config_dir, self.task_directory))
 
-        if not os.path.isdir(self._task_dir_absolute):
-            raise ValueError(f"Task directory not found: {self._task_dir_absolute}")
+        # Resolve and validate task directory or dataset file path
+        if self.use_dataset_json:
+            # Assume task_directory is the parent directory containing dataset.json
+            parent_dir = os.path.abspath(os.path.join(config_dir, self.task_directory))
+            self._dataset_file_absolute = os.path.join(parent_dir, "dataset.json")
+            self._task_dir_absolute = None # Not used when loading from dataset.json
+            if not os.path.isfile(self._dataset_file_absolute):
+                raise ValueError(f"Dataset file not found: {self._dataset_file_absolute}")
+        else:
+            # Resolve the task directory path relative to this config file's location
+            self._task_dir_absolute = os.path.abspath(os.path.join(config_dir, self.task_directory))
+            self._dataset_file_absolute = None # Not used when loading from directory
+            if not os.path.isdir(self._task_dir_absolute):
+                raise ValueError(f"Task directory not found: {self._task_dir_absolute}")
 
         # Resolve and create the output directory relative to the config file's location
         self.output_directory = os.path.abspath(os.path.join(config_dir, self.output_directory))
         os.makedirs(self.output_directory, exist_ok=True)
 
     @property
-    def absolute_task_directory(self) -> str:
-        """Returns the validated absolute path to the task directory."""
+    def absolute_task_directory(self) -> Optional[str]:
+        """Returns the validated absolute path to the task directory, or None if using dataset.json."""
         return self._task_dir_absolute
+
+    @property
+    def absolute_dataset_file(self) -> Optional[str]:
+        """Returns the validated absolute path to the dataset.json file, or None if using task directory."""
+        return self._dataset_file_absolute
 
 # Example usage:
 # if __name__ == "__main__":
-#     config = ARCBenchmarkConfig(max_tasks=10)
-#     print(f"Using model: {config.model_identifier}")
-#     print(f"Task Directory (Absolute): {config.absolute_task_directory}")
-#     print(f"Output Directory: {config.output_directory}")
-#     if config.task_ids:
-#         print(f"Specific Task IDs: {config.task_ids}")
-#     if config.max_tasks:
-#         print(f"Max Tasks: {config.max_tasks}")
+#     # Example 1: Load from directory
+#     config_dir = ARCBenchmarkConfig(max_tasks=10)
+#     print("--- Loading from Directory ---")
+#     print(f"Using model: {config_dir.model_identifier}")
+#     print(f"Task Directory (Absolute): {config_dir.absolute_task_directory}")
+#     print(f"Output Directory: {config_dir.output_directory}")
+#     if config_dir.task_ids:
+#         print(f"Specific Task IDs: {config_dir.task_ids}")
+#     if config_dir.max_tasks:
+#         print(f"Max Tasks: {config_dir.max_tasks}")
+
+#     # Example 2: Load from dataset.json (assuming task_directory points to parent, e.g., "../data")
+#     config_dataset = ARCBenchmarkConfig(use_dataset_json=True, task_directory="../data", max_tasks=5)
+#     print("\n--- Loading from dataset.json ---")
+#     print(f"Using model: {config_dataset.model_identifier}")
+#     print(f"Dataset File (Absolute): {config_dataset.absolute_dataset_file}")
+#     print(f"Output Directory: {config_dataset.output_directory}")
+#     if config_dataset.task_ids:
+#         print(f"Specific Task IDs: {config_dataset.task_ids}")
+#     if config_dataset.max_tasks:
+#         print(f"Max Tasks: {config_dataset.max_tasks}")

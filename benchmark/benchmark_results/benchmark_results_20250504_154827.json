@@ -1,0 +1,16 @@
+{
+  "metadata": {
+    "model_identifier": "GEMINI_PRO",
+    "model_username": "google/gemini-2.5-pro-preview-03-25",
+    "timestamp": "2025-05-04 15:48:27",
+    "max_tasks_requested": 20,
+    "tasks_submitted": 0,
+    "tasks_successful": 0,
+    "tasks_failed": 0,
+    "tasks_skipped": 0,
+    "task_source": "dataset.json",
+    "max_concurrent_tasks": 5,
+    "total_runtime_seconds": 0.8
+  },
+  "results": []
+}

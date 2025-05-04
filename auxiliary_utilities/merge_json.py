@@ -7,9 +7,9 @@ def merge_json_files(input_folder, output_file):
     Merges JSON files from an input folder into a single output file.
 
     Handles both individual JSON objects and lists of objects within files.
-    Merges 'signed_by' lists for entries with identical id, version, and content.
+    Merges 'signed_by' lists for entries with identical task_id, version, and content.
     """
-    processed_entries = {} # Dictionary to store unique entries: {(id, version): entry_dict}
+    processed_entries = {} # Dictionary to store unique entries: {(task_id, version): entry_dict}
     default_signer = "gkamradt" # Define the default signer
 
     if not os.path.isdir(input_folder):
@@ -36,15 +36,15 @@ def merge_json_files(input_folder, output_file):
                             print(f"Warning: Skipping non-dictionary item in file '{filename}'.")
                             continue
 
-                        # Ensure 'id', 'version', and 'signed_by' fields
-                        if 'id' not in item:
-                            # Try to infer ID from filename if missing, otherwise skip
+                        # Ensure 'task_id', 'version', and 'signed_by' fields
+                        if 'task_id' not in item:
+                            # Try to infer task_id from filename if missing, otherwise skip
                             file_id_base = os.path.splitext(filename)[0]
-                            item['id'] = file_id_base
-                            # print(f"Warning: Item in '{filename}' missing 'id'. Using filename base '{file_id_base}'.")
-                            # If even filename doesn't work as ID, we might need to skip or handle differently
-                            if not item['id']:
-                                print(f"Warning: Could not determine ID for an item in '{filename}'. Skipping.")
+                            item['task_id'] = file_id_base
+                            # print(f"Warning: Item in '{filename}' missing 'task_id'. Using filename base '{file_id_base}'.")
+                            # If even filename doesn't work as task_id, we might need to skip or handle differently
+                            if not item['task_id']:
+                                print(f"Warning: Could not determine task_id for an item in '{filename}'. Skipping.")
                                 continue
 
                         item['version'] = int(item.get('version', 0)) # Default version 0, ensure int
@@ -56,13 +56,13 @@ def merge_json_files(input_folder, output_file):
                         elif isinstance(current_signer, str):
                             item['signed_by'] = [current_signer] # Convert string to list
                         elif not isinstance(current_signer, list):
-                            print(f"Warning: Invalid 'signed_by' type ({type(current_signer)}) for item {item.get('id')} v{item.get('version')} in '{filename}'. Resetting to default.")
+                            print(f"Warning: Invalid 'signed_by' type ({type(current_signer)}) for item {item.get('task_id')} v{item.get('version')} in '{filename}'. Resetting to default.")
                             item['signed_by'] = [default_signer]
                         # Ensure all elements in the list are strings (simple check)
                         item['signed_by'] = [str(s) for s in item['signed_by'] if isinstance(s, (str, int, float))]
 
 
-                        entry_key = (item['id'], item['version'])
+                        entry_key = (item['task_id'], item['version'])
                         new_signer = item['signed_by'][0] if item['signed_by'] else default_signer # Assume the first signer is the relevant one from this file
 
                         if entry_key in processed_entries:
@@ -82,8 +82,8 @@ def merge_json_files(input_folder, output_file):
                                     processed_entries[entry_key] = existing_item # Update entry
                                     # print(f"Merged signer '{new_signer}' into existing entry {entry_key}")
                             else:
-                                # Content mismatch for the same id/version
-                                print(f"Warning: Content mismatch for duplicate entry ID '{item['id']}' version '{item['version']}' found in '{filename}'. Keeping the first encountered version.")
+                                # Content mismatch for the same task_id/version
+                                print(f"Warning: Content mismatch for duplicate entry task_id '{item['task_id']}' version '{item['version']}' found in '{filename}'. Keeping the first encountered version.")
                         else:
                             # New entry
                             processed_entries[entry_key] = item
@@ -96,8 +96,8 @@ def merge_json_files(input_folder, output_file):
 
     # Convert the processed entries dictionary back to a list
     merged_data_final = list(processed_entries.values())
-    # Optional: Sort the final list, e.g., by id then version
-    merged_data_final.sort(key=lambda x: (x.get('id', ''), x.get('version', 0)))
+    # Optional: Sort the final list, e.g., by task_id then version
+    merged_data_final.sort(key=lambda x: (x.get('task_id', ''), x.get('version', 0)))
 
 
     try:
