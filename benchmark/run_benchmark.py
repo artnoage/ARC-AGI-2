@@ -4,6 +4,9 @@ import logging
 import time
 import asyncio # Import asyncio
 import argparse # Import argparse
+import signal # Import signal for handling Ctrl+C
+import sys # Import sys for exiting from signal handler
+import atexit # Import atexit for saving on normal exit
 from config import ARCBenchmarkConfig, ModelOption # Import ModelOption for choices
 from data_loader import get_task_files, load_task, load_tasks_from_dataset # Ensure load_tasks_from_dataset is imported
 from simple_agent import SimpleAgent
@@ -22,10 +25,120 @@ logging.basicConfig(
 )
 logging.info("Logging configured at DEBUG level")
 
+# --- Global State for Saving ---
+g_results = []
+g_config = None
+g_start_time = None
+g_model_value = None
+g_successful_count = 0
+g_failed_count = 0
+g_skipped_count = 0
+g_submitted_count = 0
+g_is_saving = False # Lock to prevent concurrent saves
+SAVE_INTERVAL = 10 # Save results every N successful tasks
+# --- End Global State ---
+
+# --- Helper Functions for Saving ---
+
+def save_results_helper(output_data, output_path):
+    """Handles the actual writing of the JSON file."""
+    global g_is_saving
+    if g_is_saving:
+        logging.warning("Already saving, skipping concurrent save request.")
+        return False
+    g_is_saving = True
+    try:
+        # Ensure output directory exists
+        output_dir = os.path.dirname(output_path)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            logging.info(f"Created output directory: {output_dir}")
+
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(output_data, f, indent=2)
+        logging.info(f"Results saved to: {output_path}")
+        return True
+    except Exception as e:
+        logging.error(f"Failed to save results to {output_path}: {e}", exc_info=True)
+        return False
+    finally:
+        g_is_saving = False # Release lock
+
+def save_periodic_results():
+    """Saves the current results to a partial file."""
+    if g_config is None or not g_results:
+        return # Nothing to save yet
+
+    logging.debug(f"Attempting periodic save ({g_successful_count} successful tasks)...")
+    current_time = time.time()
+    total_time = current_time - g_start_time if g_start_time else 0
+
+    metadata = {
+        "status": "partial",
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "model_identifier": g_config.model_identifier,
+        "model_username": g_model_value,
+        "max_tasks_requested": g_config.max_tasks,
+        "tasks_submitted": g_submitted_count,
+        "tasks_successful": g_successful_count,
+        "tasks_failed": g_failed_count,
+        "tasks_skipped": g_skipped_count,
+        "task_source": "dataset.json" if g_config.use_dataset_json else "directory",
+        "max_concurrent_tasks": g_config.max_concurrent_tasks,
+        "current_runtime_seconds": round(total_time, 2)
+    }
+    output = {"metadata": metadata, "results": g_results} # Use global results
+    partial_filename = f"benchmark_results_{time.strftime('%Y%m%d_%H%M%S')}_partial.json"
+    partial_path = os.path.join(g_config.output_directory, partial_filename)
+    save_results_helper(output, partial_path)
+
+def save_final_results(interrupted=False):
+    """Saves the final results, called by atexit or signal handler."""
+    if g_config is None or not g_results:
+        logging.info("No results to save or config not loaded.")
+        return # Nothing to save
+
+    status = "interrupted" if interrupted else "completed"
+    logging.info(f"Attempting final save (status: {status})...")
+
+    end_time = time.time()
+    total_time = end_time - g_start_time if g_start_time else 0
+
+    metadata = {
+        "status": status,
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "model_identifier": g_config.model_identifier,
+        "model_username": g_model_value,
+        "max_tasks_requested": g_config.max_tasks,
+        "tasks_submitted": g_submitted_count,
+        "tasks_successful": g_successful_count,
+        "tasks_failed": g_failed_count,
+        "tasks_skipped": g_skipped_count,
+        "task_source": "dataset.json" if g_config.use_dataset_json else "directory",
+        "max_concurrent_tasks": g_config.max_concurrent_tasks,
+        "total_runtime_seconds": round(total_time, 2)
+    }
+    output = {"metadata": metadata, "results": g_results} # Use global results
+    final_filename_suffix = "_interrupted" if interrupted else ""
+    final_filename = f"benchmark_results_{time.strftime('%Y%m%d_%H%M%S')}{final_filename_suffix}.json"
+    final_path = os.path.join(g_config.output_directory, final_filename)
+    save_results_helper(output, final_path)
+
+def signal_handler(sig, frame):
+    """Handles SIGINT (Ctrl+C)."""
+    logging.warning(f"Signal {sig} received, initiating graceful shutdown and saving results...")
+    save_final_results(interrupted=True)
+    logging.warning("Exiting due to signal.")
+    sys.exit(1) # Exit after saving
+
+# --- End Helper Functions ---
+
+
 # Removed DummyModel
 
 async def process_single_task(item, config, agent, semaphore, index, total_tasks=None):
-    """Processes a single task, acquiring the semaphore."""
+    """Processes a single task, acquiring the semaphore, and updates global results."""
+    global g_results, g_successful_count, g_failed_count, g_skipped_count # Declare globals we modify
     task_id = None
     async with semaphore: # Acquire semaphore before processing
         try:
@@ -33,26 +146,27 @@ async def process_single_task(item, config, agent, semaphore, index, total_tasks
                 # Item is already (task_id, task_data) from the generator
                 task_id, task_data = item
                 log_prefix = f"Task {index+1}" + (f"/{total_tasks}" if total_tasks else "") + f" (Dataset: {task_id})"
-                logging.info(f"{log_prefix}: Acquired semaphore, processing...")
+                logging.debug(f"{log_prefix}: Acquired semaphore, processing...") # Changed to debug for less noise
             else:
                 # Item is a file_path, load the task
                 file_path = item
                 load_result = load_task(file_path) # is_dataset_json defaults to False
                 if load_result is None:
                     logging.warning(f"Skipping task from file: {os.path.basename(file_path)}")
+                    g_skipped_count += 1 # Increment skipped count
                     return None # Return None if task loading fails
                 task_id, task_data = load_result
                 log_prefix = f"Task {index+1}" + (f"/{total_tasks}" if total_tasks else "") + f" (File: {task_id})"
-                logging.info(f"{log_prefix}: Acquired semaphore, processing...")
+                logging.debug(f"{log_prefix}: Acquired semaphore, processing...") # Changed to debug
 
             # --- Agent Processing ---
             prompt_messages, reasoning = await agent.get_reasoning(task_data)
             # --- ---
 
-            # Store results
+            # Prepare result entry
             result_entry = {
                 "task_id": task_id,
-                "task_data": {
+                "task_data": { # Store only necessary parts if needed, or keep full data
                     "train": task_data.get("train", []),
                     "test": task_data.get("test", [])
                 },
@@ -62,36 +176,47 @@ async def process_single_task(item, config, agent, semaphore, index, total_tasks
 
             if reasoning is not None:
                 result_entry["reasoning"] = reasoning
-                logging.info(f"{log_prefix}: Finished processing.")
+                g_results.append(result_entry) # Append successful result
+                g_successful_count += 1
+                logging.info(f"{log_prefix}: Finished processing successfully.")
+                # Check if it's time for a periodic save
+                if g_successful_count % SAVE_INTERVAL == 0:
+                    save_periodic_results()
             else:
-                logging.warning(f"{log_prefix}: Skipping result due to processing error.")
+                # Agent failed to get reasoning
                 result_entry["reasoning"] = "ERROR: Failed to get reasoning."
+                g_results.append(result_entry) # Append error result
+                g_failed_count += 1
+                logging.warning(f"{log_prefix}: Finished processing with error (failed to get reasoning).")
 
-            return result_entry
+            # No need to return the result entry, it's added to the global list
 
         except Exception as e:
             # Catch broader errors during the loop
-            error_task_id = task_id if task_id else f"task_{index+1}" # Use index if task_id wasn't set yet
+            error_task_id = task_id if task_id else f"task_{index+1}"
             log_prefix_err = f"Task {index+1}" + (f"/{total_tasks}" if total_tasks else "") + f" ({error_task_id})"
-            logging.error(f"{log_prefix_err}: Unexpected error processing task: {e}", exc_info=True) # Log traceback
-            # Return error entry
-            return {
+            logging.error(f"{log_prefix_err}: Unexpected error processing task: {e}", exc_info=True)
+            # Append error entry to global results
+            g_results.append({
                 "task_id": error_task_id,
                 "task_data": "Error during processing loop",
                 "prompt_messages": None,
                 "reasoning": f"ERROR: Exception during task processing loop: {e}"
-            }
+            })
+            g_failed_count += 1
         # Semaphore is released automatically when exiting the 'async with' block
+        # No return value needed as results are handled globally
 
 
 async def run_benchmark(args): # Make function async and accept args
     """Runs the ARC reasoning benchmark with concurrency control."""
+    global g_config, g_start_time, g_model_value, g_submitted_count # Declare globals we modify
     logging.info("Starting ARC Reasoning Benchmark...")
 
     # 1. Load Configuration using parsed args
     try:
         # Pass parsed arguments to the config constructor
-        config = ARCBenchmarkConfig(
+        g_config = ARCBenchmarkConfig( # Assign to global config
             model_identifier=args.model_identifier,
             max_tasks=args.max_tasks,
             use_dataset_json=args.use_dataset_json,
@@ -99,15 +224,15 @@ async def run_benchmark(args): # Make function async and accept args
             max_concurrent_tasks=args.max_concurrent_tasks # Pass concurrency arg
             # Add other args here if needed, e.g., main_temp, main_port
         )
-        logging.info(f"Configuration loaded. Output directory: {config.output_directory}")
-        logging.info(f"Max concurrent tasks: {config.max_concurrent_tasks}") # Log concurrency limit
-        if config.use_dataset_json:
-            logging.info(f"Using dataset file: {config.absolute_dataset_file}")
+        logging.info(f"Configuration loaded. Output directory: {g_config.output_directory}")
+        logging.info(f"Max concurrent tasks: {g_config.max_concurrent_tasks}") # Log concurrency limit
+        if g_config.use_dataset_json:
+            logging.info(f"Using dataset file: {g_config.absolute_dataset_file}")
         else:
-            logging.info(f"Using task directory: {config.absolute_task_directory}")
-        logging.info(f"Using model: {config.model_identifier}") # Log the actual model used
-        if config.max_tasks is not None: # Check if max_tasks was set
-            logging.info(f"Maximum tasks to process: {config.max_tasks}")
+            logging.info(f"Using task directory: {g_config.absolute_task_directory}")
+        logging.info(f"Using model: {g_config.model_identifier}") # Log the actual model used
+        if g_config.max_tasks is not None: # Check if max_tasks was set
+            logging.info(f"Maximum tasks to process: {g_config.max_tasks}")
         else:
              logging.info("Processing all found/specified tasks (no max_tasks limit).")
     except ValueError as e:
@@ -117,13 +242,13 @@ async def run_benchmark(args): # Make function async and accept args
     # 2. Initialize Agent and Model
     try:
         # Get the model value (full name) from the ModelOption enum
-        model_enum_member = ModelOption[config.model_identifier]
-        model_value = model_enum_member.value  # e.g., "google/gemini-2.5-flash-preview"
+        model_enum_member = ModelOption[g_config.model_identifier]
+        g_model_value = model_enum_member.value  # Assign to global
         
         # Use get_model to initialize the actual model
-        model = get_model(config, role="main")
+        model = get_model(g_config, role="main") # Use global config
         agent = SimpleAgent(model=model)
-        logging.info(f"Initialized SimpleAgent with model: {config.model_identifier} ({model_value})")
+        logging.info(f"Initialized SimpleAgent with model: {g_config.model_identifier} ({g_model_value})")
     except ValueError as e:
         logging.error(f"Model initialization failed: {e}")
         logging.error("Ensure OPENROUTER_API_KEY is set in .env for non-local models, or a local server is running for LOCAL models.")
@@ -134,31 +259,31 @@ async def run_benchmark(args): # Make function async and accept args
 
 
     # 3. Prepare Task List/Iterator and Semaphore
-    semaphore = asyncio.Semaphore(config.max_concurrent_tasks)
+    semaphore = asyncio.Semaphore(g_config.max_concurrent_tasks) # Use global config
     async_tasks = [] # List to hold the asyncio tasks to be gathered
-    submitted_count = 0 # Count tasks submitted for processing
+    g_submitted_count = 0 # Use global count
 
     # 4. Process Tasks Concurrently
-    start_time = time.time()
-    logging.info(f"Starting task processing with concurrency limit {config.max_concurrent_tasks}...")
+    g_start_time = time.time() # Assign to global start time
+    logging.info(f"Starting task processing with concurrency limit {g_config.max_concurrent_tasks}...")
 
-    if config.use_dataset_json:
-        task_source = config.absolute_dataset_file
+    if g_config.use_dataset_json: # Use global config
+        task_source = g_config.absolute_dataset_file # Use global config
         logging.info(f"Processing tasks iteratively from dataset file: {task_source}")
         try:
             # Iterate directly over the generator, don't load all into memory
             task_generator = load_tasks_from_dataset(
                 dataset_path=task_source,
-                task_ids=config.task_ids,
-                max_tasks=config.max_tasks
+                task_ids=g_config.task_ids, # Use global config
+                max_tasks=g_config.max_tasks # Use global config
             )
             for i, task_item in enumerate(task_generator):
                 # Create the coroutine for this task
-                coro = process_single_task(task_item, config, agent, semaphore, i) # Removed total_tasks arg
+                coro = process_single_task(task_item, g_config, agent, semaphore, i) # Use global config
                 async_tasks.append(coro)
-                submitted_count += 1
-            logging.info(f"Submitted {submitted_count} tasks from dataset for processing.")
-            if submitted_count == 0:
+                g_submitted_count += 1 # Use global count
+            logging.info(f"Submitted {g_submitted_count} tasks from dataset for processing.")
+            if g_submitted_count == 0:
                  logging.warning("No tasks were yielded from the dataset generator. Check filters or file content.")
                  # No need to run gather if no tasks were submitted
                  results_raw = []
@@ -171,23 +296,23 @@ async def run_benchmark(args): # Make function async and accept args
             return # Exit if dataset iteration fails
 
     else: # Processing from directory
-        task_source = config.absolute_task_directory
+        task_source = g_config.absolute_task_directory # Use global config
         logging.info(f"Processing tasks from directory: {task_source}")
         try:
             task_files = get_task_files( # This returns a list of file paths
                 task_directory=task_source,
-                task_ids=config.task_ids,
-                max_tasks=config.max_tasks
+                task_ids=g_config.task_ids, # Use global config
+                max_tasks=g_config.max_tasks # Use global config
             )
-            submitted_count = len(task_files) # We know the count upfront here
+            g_submitted_count = len(task_files) # Assign to global count
             if not task_files:
                 logging.warning("No task files found or specified. Exiting.")
                 return
-            logging.info(f"Prepared {submitted_count} task files to process.")
+            logging.info(f"Prepared {g_submitted_count} task files to process.")
 
             # Create coroutine tasks for each file path
             async_tasks = [
-                process_single_task(file_path, config, agent, semaphore, i, submitted_count)
+                process_single_task(file_path, g_config, agent, semaphore, i, g_submitted_count) # Use global config and count
                 for i, file_path in enumerate(task_files)
             ]
             # Run tasks concurrently and gather results
@@ -197,82 +322,47 @@ async def run_benchmark(args): # Make function async and accept args
             logging.error(f"Error processing tasks from directory {task_source}: {e}", exc_info=True)
             return
 
-    # 5. Process Results
-    results = []
-    successful_count = 0
-    failed_count = 0
-    skipped_count = 0 # Count tasks that returned None (e.g., load_task failed)
-
+    # 5. Wait for all tasks to complete
+    # The results_raw variable now primarily holds exceptions if any occurred during gather,
+    # or None if the coroutine finished without returning (which is our case now).
+    # Actual results are in g_results. We just need to log any gather-level exceptions.
     for res in results_raw:
         if isinstance(res, Exception):
-            logging.error(f"Task failed with exception during gather: {res}", exc_info=res)
-            failed_count += 1
-            # Add an error entry to results
-            results.append({
-                "task_id": "UNKNOWN_TASK_ERROR",
-                "task_data": "Error during asyncio.gather",
-                "prompt_messages": None,
-                "reasoning": f"ERROR: Exception during task execution: {res}"
-            })
-        elif res is None:
-            # Task was likely skipped intentionally (e.g., load_task failed in process_single_task)
-            skipped_count += 1
-        elif isinstance(res, dict) and res.get("reasoning", "").startswith("ERROR:"):
-             # Task processed but resulted in an error captured within process_single_task
-             results.append(res)
-             failed_count += 1
-        elif isinstance(res, dict): # Successful result
-            results.append(res)
-            successful_count += 1
-        else:
-             logging.warning(f"Unexpected item in results_raw: {type(res)} - {res}")
-             failed_count += 1 # Count unexpected results as failures
+            # These are exceptions that happened *outside* the try/except in process_single_task,
+            # likely during the asyncio scheduling or semaphore handling itself.
+            logging.error(f"Task failed with exception during gather/scheduling: {res}", exc_info=res)
+            # We don't have task_id here, but the error is logged.
+            # We could potentially increment g_failed_count here too, but it might double-count
+            # if the exception also caused process_single_task to log an error.
+            # Let's rely on the logging within process_single_task for counts.
+        elif res is not None:
+             # This shouldn't happen anymore as process_single_task doesn't return.
+             logging.warning(f"Unexpected non-None item in results_raw after gather: {type(res)} - {res}")
 
+    # 6. Log Final Summary (Saving is handled by atexit/signal)
     end_time = time.time()
-    total_time = end_time - start_time
+    total_time = end_time - g_start_time if g_start_time else 0 # Use global start time
 
     log_summary = (
-        f"Finished processing. Submitted: {submitted_count}, "
-        f"Successful: {successful_count}, Failed: {failed_count}, Skipped: {skipped_count}. "
+        f"Finished processing loop. Submitted: {g_submitted_count}, "
+        f"Successful: {g_successful_count}, Failed: {g_failed_count}, Skipped: {g_skipped_count}. "
         f"Total time: {total_time:.2f} seconds."
     )
     logging.info(log_summary)
+    # Final saving will be triggered by atexit handler automatically now.
+    logging.info("Benchmark run loop complete. Final results will be saved on exit.")
 
-
-    # 6. Save Results
-    # Add metadata to results
-    metadata = {
-        "model_identifier": config.model_identifier,
-        "model_username": model_value,  # The full model name/path as it appears in the config
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "max_tasks_requested": config.max_tasks, # How many were asked for
-        "tasks_submitted": submitted_count, # How many were actually submitted
-        "tasks_successful": successful_count,
-        "tasks_failed": failed_count,
-        "tasks_skipped": skipped_count,
-        "task_source": "dataset.json" if config.use_dataset_json else "directory",
-        "max_concurrent_tasks": config.max_concurrent_tasks, # Add concurrency info to metadata
-        "total_runtime_seconds": round(total_time, 2)
-    }
-
-    results_filename = f"benchmark_results_{time.strftime('%Y%m%d_%H%M%S')}.json"
-    results_path = os.path.join(config.output_directory, results_filename)
-    try:
-        # Create the final output structure with metadata and results
-        output = {
-            "metadata": metadata,
-            "results": results # Contains only successful or error-captured results
-        }
-
-        with open(results_path, 'w', encoding='utf-8') as f:
-            json.dump(output, f, indent=2)
-        logging.info(f"Benchmark results saved to: {results_path}")
-    except Exception as e:
-        logging.error(f"Failed to save results: {e}")
-
-    logging.info("Benchmark run complete.")
 
 if __name__ == "__main__":
+    # --- Register Exit Handlers FIRST ---
+    # Register the signal handler for Ctrl+C
+    signal.signal(signal.SIGINT, signal_handler)
+    # Register the final save function to be called on normal exit
+    atexit.register(save_final_results)
+    logging.info("Registered signal handler for SIGINT and atexit handler for final save.")
+    # --- End Exit Handlers ---
+
+
     # --- Argument Parsing ---
     parser = argparse.ArgumentParser(description="Run ARC Reasoning Benchmark")
     parser.add_argument(

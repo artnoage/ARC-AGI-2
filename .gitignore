@@ -1,5 +1,5 @@
 .aider*
 .env
 __pycache__
-benchmark\benchmark_results
-benchmark\benchmark_results\*
+benchmark/benchmark_results/
+benchmark_debug.log

@@ -10,7 +10,7 @@
 *   **Phase 2 (Benchmarking Agent Reasoning & Utilities):**
     *   Python: Primary language for the benchmarking suite and auxiliary utilities.
     *   `asyncio`: For asynchronous operations in the benchmark, especially model API calls.
-    *   Standard Libraries: `json`, `os`, `argparse`, `logging`, `time`.
+    *   Standard Libraries: `json`, `os`, `argparse`, `logging`, `time`, `signal`, `atexit`.
     *   External Libraries: `aiohttp` (used in `model_utils.py` for async API calls), `python-dotenv` (for loading `.env`).
     *   Language Models: Interaction with various models via local servers (e.g., Ollama) or APIs (e.g., OpenRouter).
 
