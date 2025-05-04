@@ -24,7 +24,7 @@ class ARCBenchmarkConfig:
     # --- Model Settings ---
     # Use ModelOption enum names, e.g., "CLAUDE", "LOCAL_0"
     model_identifier: str = ModelOption.LOCAL_0.name # Default to LOCAL_0
-    main_temp: float = 0.1 # Temperature for the main model (Default: 0.0 for deterministic output)
+    main_temp: float = 0.7 # Temperature for the main model (Default: 0.0 for deterministic output)
     main_port: int = 8000 # Port if using a local model for the 'main' role
     main_template: int = 1 # Template type (1 or 2) for local models
     max_tokens: int = None # Maximum number of tokens to generate (Default: None for no limit)
