@@ -1,6 +1,6 @@
 # Project Brief: ARC-AGI-2 Adaptation
 
-This project involves adapting the original ARC-AGI dataset and interface for advanced AGI research, focusing initially on synthetic data generation and subsequently on model reasoning benchmarking.
+This project involves adapting the original ARC-AGI dataset and interface for advanced AGI research. It has two main areas of focus: synthetic data generation and real benchmarking of model performance on ARC tasks.
 
 ## Core Requirements & Goals
 
@@ -11,18 +11,20 @@ This project involves adapting the original ARC-AGI dataset and interface for ad
 *   Introduce a distance metric to guide users during task solving.
 *   Define a data structure (`data/nature_of_data.md`) to store tasks, variations, traces, and contributions.
 
-**Phase 2: Benchmarking Agent Reasoning**
-*   Create a benchmarking suite (`benchmark/`) to evaluate language model reasoning on ARC tasks.
-*   Develop a `SimpleAgent` to present ARC 'train' examples to a model.
-*   Prompt the model to explain its reasoning for the input-output transformations.
-*   Save the model's reasoning output for analysis (`data/evaluation/`).
-*   Make the benchmark configurable (`benchmark/config.py`) for different models (local/API) and parameters.
+**Phase 2: Synthetic Data Generation & Verification**
+*   Develop tools (`synthetic_data_generators/`) for generating synthetic data, including reasoning traces and code solutions, from language models.
+*   Implement verification mechanisms for generated code.
+
+**Phase 3: Real Benchmarking**
+*   Create a dedicated benchmarking suite (`benchmark/`) to evaluate language model performance directly on ARC tasks.
+*   This suite should handle both generating model responses and evaluating their correctness.
 
 ## Scope
 
 *   **Phase 1:** Development of the modified testing interface, transformation/reasoning trace features, and data storage mechanisms.
-*   **Phase 2:** Implementation of the benchmarking agent, model interaction utilities, configuration, execution script, and result saving.
-*   Creation and maintenance of Memory Bank documentation throughout both phases.
+*   **Phase 2:** Implementation of synthetic data generation tools and verification.
+*   **Phase 3:** Implementation of the real benchmarking suite.
+*   Creation and maintenance of Memory Bank documentation throughout all phases.
 
 ## Stakeholders
 
@@ -32,4 +34,5 @@ This project involves adapting the original ARC-AGI dataset and interface for ad
 ## Timeline & Milestones (Optional)
 
 *   **Phase 1:** Complete development of the synthetic data generation interface and features.
-*   **Phase 2:** Complete implementation and testing of the benchmarking suite.
+*   **Phase 2:** Complete implementation and testing of synthetic data generation and verification tools.
+*   **Phase 3:** Complete implementation and testing of the real benchmarking suite.

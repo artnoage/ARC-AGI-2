@@ -9,7 +9,7 @@ from functools import wraps
 # Removed contextmanager import
 from typing import Optional, Dict, List, Callable, Tuple, TypeVar, Any
 # Explicitly import required classes from config
-from config import ARCBenchmarkConfig, ModelOption
+from .config import ARCBenchmarkConfig, ModelOption # Use relative import
 T = TypeVar('T')
 load_dotenv()
 # Removed TimeoutException

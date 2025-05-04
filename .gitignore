@@ -2,4 +2,4 @@
 .env
 __pycache__
 benchmark/benchmark_results/
-benchmark_debug.log
+synthetic_data_generators/synthetic_data

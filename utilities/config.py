@@ -43,8 +43,9 @@ class ARCBenchmarkConfig:
     max_concurrent_tasks: int = 5 # Default concurrency limit
 
     # --- Output Settings ---
-    # Directory to save benchmark results
-    output_directory: str = "benchmark_results"
+    # Directory to save benchmark results (relative to the utilities directory where this config is defined)
+    # Defaulting to a directory named 'synthetic_data' one level up from 'utilities/'
+    output_directory: str = "../synthetic_data" # Changed default
 
     # --- Internal ---
     # Field to store the absolute path to the dataset.json file after initialization
