@@ -12,6 +12,7 @@ This file captures key patterns, preferences, and insights discovered during the
 
 ## Tooling & Workflow Notes
 
+*   **Benchmark Testing:** Always use the `GEMINI_FLASH` model identifier when running benchmark tests, unless explicitly requested otherwise. (e.g., `python benchmark/run_benchmark.py --model_identifier GEMINI_FLASH ...`)
 *   [Record project-specific tool usage or workflow steps, e.g., "Use `npm run lint:fix` before committing," "Deployment requires manual approval step X."]
 
 ## Known Challenges & Workarounds

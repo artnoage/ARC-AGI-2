@@ -1,0 +1,57 @@
+2025-05-04 17:05:19,669 - INFO - Code verification script started.
+2025-05-04 17:05:19,679 - INFO - Loading benchmark results from: benchmark/benchmark_results/code_gen_benchmark_results_20250504_165606.json
+2025-05-04 17:05:19,681 - INFO - Loaded 10 results entries.
+2025-05-04 17:05:19,681 - INFO - Loading ARC tasks from: data (using_dataset_json=False)
+2025-05-04 17:05:19,682 - INFO - Set up to load tasks individually from directory: data
+2025-05-04 17:05:19,682 - INFO - Verifying Task ID: 007bbfb7
+2025-05-04 17:05:19,682 - INFO - Task 007bbfb7: Loaded task data from data\training\007bbfb7.json
+2025-05-04 17:05:20,228 - WARNING - Task 007bbfb7: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,228 - ERROR - Task 007bbfb7: Test case 0: Execution error: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,228 - INFO - Task 007bbfb7: Classified as ERROR.
+2025-05-04 17:05:20,228 - INFO - Verifying Task ID: 00d62c1b
+2025-05-04 17:05:20,229 - INFO - Task 00d62c1b: Loaded task data from data\training\00d62c1b.json
+2025-05-04 17:05:20,230 - WARNING - Task 00d62c1b: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,230 - ERROR - Task 00d62c1b: Test case 0: Execution error: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,230 - INFO - Task 00d62c1b: Classified as ERROR.
+2025-05-04 17:05:20,230 - INFO - Verifying Task ID: 00576224
+2025-05-04 17:05:20,230 - INFO - Task 00576224: Loaded task data from data\training\00576224.json
+2025-05-04 17:05:20,231 - WARNING - Task 00576224: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,231 - ERROR - Task 00576224: Test case 0: Execution error: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,231 - INFO - Task 00576224: Classified as ERROR.
+2025-05-04 17:05:20,231 - INFO - Verifying Task ID: 00dbd492
+2025-05-04 17:05:20,231 - INFO - Task 00dbd492: Loaded task data from data\training\00dbd492.json
+2025-05-04 17:05:20,232 - WARNING - Task 00dbd492: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,232 - ERROR - Task 00dbd492: Test case 0: Execution error: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,232 - INFO - Task 00dbd492: Classified as ERROR.
+2025-05-04 17:05:20,232 - INFO - Verifying Task ID: 017c7c7b
+2025-05-04 17:05:20,233 - INFO - Task 017c7c7b: Loaded task data from data\training\017c7c7b.json
+2025-05-04 17:05:20,233 - WARNING - Task 017c7c7b: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,233 - ERROR - Task 017c7c7b: Test case 0: Execution error: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,233 - INFO - Task 017c7c7b: Classified as ERROR.
+2025-05-04 17:05:20,233 - INFO - Verifying Task ID: 025d127b
+2025-05-04 17:05:20,234 - INFO - Task 025d127b: Loaded task data from data\training\025d127b.json
+2025-05-04 17:05:20,234 - WARNING - Task 025d127b: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,234 - ERROR - Task 025d127b: Test case 0: Execution error: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,234 - INFO - Task 025d127b: Classified as ERROR.
+2025-05-04 17:05:20,234 - INFO - Verifying Task ID: 045e512c
+2025-05-04 17:05:20,235 - INFO - Task 045e512c: Loaded task data from data\training\045e512c.json
+2025-05-04 17:05:20,236 - WARNING - Task 045e512c: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,236 - ERROR - Task 045e512c: Test case 0: Execution error: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,236 - INFO - Task 045e512c: Classified as ERROR.
+2025-05-04 17:05:20,236 - INFO - Verifying Task ID: 0520fde7
+2025-05-04 17:05:20,237 - INFO - Task 0520fde7: Loaded task data from data\training\0520fde7.json
+2025-05-04 17:05:20,237 - WARNING - Task 0520fde7: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,237 - ERROR - Task 0520fde7: Test case 0: Execution error: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,237 - INFO - Task 0520fde7: Classified as ERROR.
+2025-05-04 17:05:20,237 - INFO - Verifying Task ID: 009d5c81
+2025-05-04 17:05:20,238 - INFO - Task 009d5c81: Loaded task data from data\training\009d5c81.json
+2025-05-04 17:05:20,238 - WARNING - Task 009d5c81: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,238 - ERROR - Task 009d5c81: Test case 0: Execution error: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,239 - INFO - Task 009d5c81: Classified as ERROR.
+2025-05-04 17:05:20,239 - INFO - Verifying Task ID: 03560426
+2025-05-04 17:05:20,239 - INFO - Task 03560426: Loaded task data from data\training\03560426.json
+2025-05-04 17:05:20,240 - WARNING - Task 03560426: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,240 - ERROR - Task 03560426: Test case 0: Execution error: Function 'solve_task(input_grid)' not found in generated code.
+2025-05-04 17:05:20,240 - INFO - Task 03560426: Classified as ERROR.
+2025-05-04 17:05:20,241 - INFO - Verification process completed.
+2025-05-04 17:05:20,241 - INFO - Summary: Total=10, WithCode=10, Success=0, Failed=0, Error=10, MissingData=0

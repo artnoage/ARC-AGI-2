@@ -18,6 +18,18 @@ class SimpleAgent:
 You are participating in a visual IQ test. You will be presented with a series of input-output grid pairs that demonstrate a hidden pattern or transformation rule. Your task is to analyze these examples, understand the underlying reasoning, and explain the logic you would use to generate the output grid from a given input grid based on the observed pattern.
 
 Focus on explaining the reasoning process clearly and concisely.
+
+The grids use numbers 0-9 to represent colors. If you refer to colors in your reasoning, please use the following mapping:
+0: black
+1: blue
+2: red
+3: green
+4: yellow
+5: grey
+6: fuschia
+7: orange
+8: teal
+9: brown
 """
 
     async def get_reasoning(self, task_data: dict) -> tuple[str | None, str | None]:

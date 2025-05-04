@@ -29,9 +29,11 @@ graph TD
 graph LR
     subgraph Benchmark Suite (Python)
         Config[config.py]
-        Runner[run_benchmark.py (Async w/ Semaphore, Saving, Exit Handling)]
+        ReasoningRunner[generate_reasoning_traces.py (Async w/ Semaphore, Saving, Exit Handling)]
+        CodeRunner[run_code_generation_benchmark.py (Async w/ Semaphore, Saving, Exit Handling)]
         Loader[data_loader.py]
-        Agent[simple_agent.py (Async)]
+        SimpleAgent[simple_agent.py (Async)]
+        CodeAgent[code_generating_agent.py (Async)]
         ModelUtil[model_utils.py]
     end
     subgraph External
@@ -43,36 +45,52 @@ graph LR
         AuxUtil[Auxiliary Utilities (Python)]
     end
 
-    Config -- Defines Parameters --> Runner
-    Runner -- Uses --> Loader
-    Runner -- Uses --> Agent
-    Runner -- Uses --> ModelUtil
+    Config -- Defines Parameters --> ReasoningRunner
+    Config -- Defines Parameters --> CodeRunner
+    ReasoningRunner -- Uses --> Loader
+    ReasoningRunner -- Uses --> SimpleAgent
+    ReasoningRunner -- Uses --> ModelUtil
+    CodeRunner -- Uses --> Loader
+    CodeRunner -- Uses --> CodeAgent
+    CodeRunner -- Uses --> ModelUtil
     Loader -- Reads --> ARC_Files
     Loader -- Reads --> ARC_Dataset
-    Agent -- Uses --> ModelUtil
+    SimpleAgent -- Uses --> ModelUtil
+    CodeAgent -- Uses --> ModelUtil
     ModelUtil -- Interacts with --> Model
-    Agent -- Processes Data from --> Loader
-    Runner -- Saves --> Results
-    AuxUtil -- Reads --> Results
+    SimpleAgent -- Processes Data from --> Loader
+    CodeAgent -- Processes Data from --> Loader
+    ReasoningRunner -- Saves --> Results(Reasoning)
+    CodeRunner -- Saves --> Results(Code+Reasoning)
+    AuxUtil -- Reads --> Results(Reasoning)
     AuxUtil -- Reads/Writes --> Traces
 ```
-*   A Python-based command-line application orchestrates the benchmarking process, configurable via `config.py` and command-line arguments.
-*   Components handle configuration, data loading (from individual files or a single `dataset.json`), agent logic, model interaction, and result saving (including metadata and full prompts).
-*   **Concurrency:** `run_benchmark.py` uses `asyncio.Semaphore` to control the number of concurrent tasks processed, based on `config.max_concurrent_tasks`.
-*   **Saving & Exit:** `run_benchmark.py` implements periodic saving of partial results and graceful saving of all results on normal exit (`atexit`) or interruption (`SIGINT`). Global state variables manage results and saving status.
-*   Auxiliary utilities (e.g., `auxiliary_utilities/merge_reasoning.py`) process the benchmark results and integrate them with the trace store (`data/traces_store.json`), storing reasoning in the `text` field and creating new entries for each merged reasoning trace for an existing task ID.
+*   Two Python-based command-line applications orchestrate the benchmarking processes, configurable via `config.py` and command-line arguments:
+    *   `generate_reasoning_traces.py`: Focuses solely on generating reasoning traces using `SimpleAgent`.
+    *   `run_code_generation_benchmark.py`: Generates both reasoning and Python code using `CodeGeneratingAgent`.
+*   Shared components handle configuration (`config.py`), data loading (`data_loader.py` - supporting individual files or `dataset.json`), and model interaction (`model_utils.py`).
+*   Distinct agent logic exists in `simple_agent.py` and `code_generating_agent.py`.
+*   Both runner scripts implement result saving (including metadata and full prompts) with distinct output filenames.
+*   **Concurrency:** Both runner scripts (`generate_reasoning_traces.py`, `run_code_generation_benchmark.py`) use `asyncio.Semaphore` to control the number of concurrent tasks processed, based on `config.max_concurrent_tasks`.
+*   **Saving & Exit:** Both runner scripts implement periodic saving of partial results (appending to `.jsonl` files) and graceful saving of all results on normal exit (`atexit`) or interruption (`SIGINT`) to timestamped `.json` files. Global state variables manage results and saving status within each script.
+*   Auxiliary utilities (e.g., `auxiliary_utilities/merge_reasoning.py`) process the reasoning benchmark results (`generate_reasoning_traces.py` output) and integrate them with the trace store (`data/traces_store.json`), storing reasoning in the `text` field and creating new entries for each merged reasoning trace for an existing task ID. Utilities for processing code generation results may be added later.
 
 ## Key technical decisions
 
 *   **Phase 1:** Client-side JavaScript for UI interactions and data manipulation. JSON for data storage.
-*   **Phase 2:** Python for backend/scripting logic. Asynchronous programming (`asyncio`) for efficient model interaction and **concurrency control (`asyncio.Semaphore`)**. Modular design separating concerns (config, data, model, agent, runner, auxiliary utilities). Use of `.env` for sensitive keys. Command-line argument parsing (`argparse`) for runtime configuration (including data source selection and concurrency limit). Detailed logging for debugging. `aiohttp` for async HTTP requests. Dual data loading methods implemented in `data_loader.py`. **Signal handling (`signal`, `atexit`)** for graceful shutdown and result saving. Global state management within `run_benchmark.py` for accumulating results across async tasks.
+*   **Phase 2:** Python for backend/scripting logic. Asynchronous programming (`asyncio`) for efficient model interaction and **concurrency control (`asyncio.Semaphore`)** in both benchmark runners. Modular design separating concerns (config, data, model, agents, runners, auxiliary utilities). Use of `.env` for sensitive keys. Command-line argument parsing (`argparse`) for runtime configuration (including data source selection and concurrency limit). Detailed logging for debugging. `aiohttp` for async HTTP requests. Dual data loading methods implemented in `data_loader.py`. **Signal handling (`signal`, `atexit`)** for graceful shutdown and result saving in both runners. Global state management within each runner script (`generate_reasoning_traces.py`, `run_code_generation_benchmark.py`) for accumulating results across async tasks.
 
 ## Design patterns in use
 
 *   **Phase 1:** Event-driven UI.
-*   **Phase 2:** Modular design. Configuration management pattern (config file + CLI overrides). Factory pattern in `model_utils.py` (`get_model`). **Concurrency limiting pattern (`asyncio.Semaphore`)** in `run_benchmark.py`. **Graceful shutdown/resource cleanup pattern** using `signal` and `atexit`.
+*   **Phase 2:** Modular design. Configuration management pattern (config file + CLI overrides). Factory pattern in `model_utils.py` (`get_model`). **Concurrency limiting pattern (`asyncio.Semaphore`)** applied in both benchmark runners. **Graceful shutdown/resource cleanup pattern** using `signal` and `atexit` applied in both benchmark runners.
 
 ## Component relationships
 
 *   **Phase 1:** UI depends on ARC data format. Data storage format defined in `data/nature_of_data.md`.
-*   **Phase 2:** `run_benchmark.py` orchestrates other benchmark modules, managing task execution flow, **applying concurrency limits via `asyncio.Semaphore`**, and **handling periodic/final result saving via global state and exit handlers**. `SimpleAgent` depends on `model_utils.py` and data provided by `data_loader.py`. `data_loader.py` now offers two methods: loading individual files or loading from `dataset.json`. `run_benchmark.py` selects the loading method based on configuration (`config.py` + CLI args). `model_utils.py` abstracts model interactions. `auxiliary_utilities/merge_reasoning.py` processes output from `run_benchmark.py` and updates `data/traces_store.json`, storing reasoning in the `text` field and creating new entries for each merged reasoning trace for an existing task ID.
+*   **Phase 2:**
+    *   `generate_reasoning_traces.py` orchestrates the reasoning benchmark, using `SimpleAgent`, `data_loader.py`, and `model_utils.py`. It manages task flow, concurrency, and saving for reasoning traces.
+    *   `run_code_generation_benchmark.py` orchestrates the code generation benchmark, using `CodeGeneratingAgent`, `data_loader.py`, and `model_utils.py`. It manages task flow, concurrency, and saving for reasoning + code results.
+    *   Both runners depend on `config.py` for settings and select the data loading method from `data_loader.py` based on configuration.
+    *   `SimpleAgent` and `CodeGeneratingAgent` implement distinct prompting strategies but both rely on `model_utils.py` for API interaction.
+    *   `auxiliary_utilities/merge_reasoning.py` processes output from `generate_reasoning_traces.py` and updates `data/traces_store.json`, storing reasoning in the `text` field and creating new entries for each merged reasoning trace for an existing task ID.
