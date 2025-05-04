@@ -11,8 +11,18 @@
     *   Python: Primary language for the benchmarking suite and auxiliary utilities.
     *   `asyncio`: For asynchronous operations in the benchmark, especially model API calls.
     *   Standard Libraries: `json`, `os`, `argparse`, `logging`, `time`, `signal`, `atexit`.
-    *   External Libraries: `aiohttp` (used in `model_utils.py` for async API calls), `python-dotenv` (for loading `.env`).
+    *   External Libraries: `aiohttp` (used in `utilities/model_utils.py` for async API calls), `python-dotenv` (for loading `.env`).
     *   Language Models: Interaction with various models via local servers (e.g., Ollama) or APIs (e.g., OpenRouter).
+    *   **Key Python Components:**
+        *   `agents/reasoning_trace_generator.py`: Agent logic for reasoning traces.
+        *   `agents/reasoning_code_generator.py`: Agent logic for reasoning and code generation.
+        *   `benchmark/generate_reasoning_traces.py`: Runner script for reasoning benchmark.
+        *   `benchmark/run_code_generation_benchmark.py`: Runner script for code generation benchmark.
+        *   `benchmark/verify_generated_code.py`: Script to verify generated code.
+        *   `utilities/config.py`: Configuration management.
+        *   `utilities/data_loader.py`: Data loading logic.
+        *   `utilities/model_utils.py`: Model interaction utilities.
+        *   `auxiliary_utilities/`: Folder containing helper scripts (e.g., `merge_reasoning.py`).
 
 ## Development setup
 
@@ -29,4 +39,4 @@
 ## Dependencies
 
 *   **Phase 1:** None beyond a modern web browser.
-*   **Phase 2:** Python 3.x, `aiohttp`, `python-dotenv`. No specific model client libraries currently needed as `model_utils.py` uses direct API calls.
+*   **Phase 2:** Python 3.x, `aiohttp`, `python-dotenv`. No specific model client libraries currently needed as `utilities/model_utils.py` uses direct API calls.

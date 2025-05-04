@@ -7,11 +7,12 @@ import argparse # Import argparse
 import signal # Import signal for handling Ctrl+C
 import sys # Import sys for exiting from signal handler
 import atexit # Import atexit for saving on normal exit
-from config import ARCBenchmarkConfig, ModelOption # Import ModelOption for choices
-from data_loader import get_task_files, load_task, load_tasks_from_dataset # Ensure load_tasks_from_dataset is imported
-from simple_agent import SimpleAgent
+from utilities.config import ARCBenchmarkConfig, ModelOption # Updated import path
+# Only import the dataset loader function
+from utilities.data_loader import load_tasks_from_dataset # Updated import path
+from agents.reasoning_trace_generator import SimpleAgent # Keep this path
 # Import get_model
-from model_utils import get_model
+from utilities.model_utils import get_model # Updated import path
 
 # Configure logging
 # Set to DEBUG level to capture all the detailed logs we've added
@@ -127,7 +128,7 @@ def save_final_results(interrupted=False):
         "tasks_successful": g_successful_count,
         "tasks_failed": g_failed_count,
         "tasks_skipped": g_skipped_count,
-        "task_source": "dataset.json" if g_config.use_dataset_json else "directory",
+        "task_source": "dataset.json", # Now always loaded from dataset.json
         "max_concurrent_tasks": g_config.max_concurrent_tasks,
         "total_runtime_seconds": round(total_time, 2)
     }
@@ -155,22 +156,10 @@ async def process_single_task(item, config, agent, semaphore, index, total_tasks
     task_id = None
     async with semaphore: # Acquire semaphore before processing
         try:
-            if config.use_dataset_json:
-                # Item is already (task_id, task_data) from the generator
-                task_id, task_data = item
-                log_prefix = f"Task {index+1}" + (f"/{total_tasks}" if total_tasks else "") + f" (Dataset: {task_id})"
-                logging.debug(f"{log_prefix}: Acquired semaphore, processing...") # Changed to debug for less noise
-            else:
-                # Item is a file_path, load the task
-                file_path = item
-                load_result = load_task(file_path) # is_dataset_json defaults to False
-                if load_result is None:
-                    logging.warning(f"Skipping task from file: {os.path.basename(file_path)}")
-                    g_skipped_count += 1 # Increment skipped count
-                    return None # Return None if task loading fails
-                task_id, task_data = load_result
-                log_prefix = f"Task {index+1}" + (f"/{total_tasks}" if total_tasks else "") + f" (File: {task_id})"
-                logging.debug(f"{log_prefix}: Acquired semaphore, processing...") # Changed to debug
+            # Item is now always a tuple (task_id, task_data) from load_tasks_from_dataset
+            task_id, task_data = item
+            log_prefix = f"Task {index+1}" + (f"/{total_tasks}" if total_tasks else "") + f" (Dataset: {task_id})"
+            logging.debug(f"{log_prefix}: Acquired semaphore, processing...")
 
             # --- Agent Processing ---
             prompt_messages, reasoning = await agent.get_reasoning(task_data)
@@ -226,23 +215,21 @@ async def run_benchmark(args): # Make function async and accept args
     global g_config, g_start_time, g_model_value, g_submitted_count # Declare globals we modify
     logging.info("Starting ARC Reasoning Benchmark...")
 
-    # 1. Load Configuration using parsed args
+    # 1. Load Configuration using parsed args (updated for dataset.json only)
     try:
         # Pass parsed arguments to the config constructor
         g_config = ARCBenchmarkConfig( # Assign to global config
             model_identifier=args.model_identifier,
             max_tasks=args.max_tasks,
-            use_dataset_json=args.use_dataset_json,
-            task_directory=args.task_directory,
+            # use_dataset_json is removed
+            dataset_directory=args.dataset_directory, # Use the renamed argument
             max_concurrent_tasks=args.max_concurrent_tasks # Pass concurrency arg
             # Add other args here if needed, e.g., main_temp, main_port
         )
         logging.info(f"Configuration loaded. Output directory: {g_config.output_directory}")
         logging.info(f"Max concurrent tasks: {g_config.max_concurrent_tasks}") # Log concurrency limit
-        if g_config.use_dataset_json:
-            logging.info(f"Using dataset file: {g_config.absolute_dataset_file}")
-        else:
-            logging.info(f"Using task directory: {g_config.absolute_task_directory}")
+        # Always using dataset.json now
+        logging.info(f"Using dataset file: {g_config.absolute_dataset_file}")
         logging.info(f"Using model: {g_config.model_identifier}") # Log the actual model used
         if g_config.max_tasks is not None: # Check if max_tasks was set
             logging.info(f"Maximum tasks to process: {g_config.max_tasks}")
@@ -280,62 +267,37 @@ async def run_benchmark(args): # Make function async and accept args
     g_start_time = time.time() # Assign to global start time
     logging.info(f"Starting task processing with concurrency limit {g_config.max_concurrent_tasks}...")
 
-    if g_config.use_dataset_json: # Use global config
-        task_source = g_config.absolute_dataset_file # Use global config
-        logging.info(f"Processing tasks iteratively from dataset file: {task_source}")
-        try:
-            # Iterate directly over the generator, don't load all into memory
-            task_generator = load_tasks_from_dataset(
-                dataset_path=task_source,
-                task_ids=g_config.task_ids, # Use global config
-                max_tasks=g_config.max_tasks # Use global config
-            )
-            for i, task_item in enumerate(task_generator):
-                # Create the coroutine for this task
-                coro = process_single_task(task_item, g_config, agent, semaphore, i) # Use global config
-                async_tasks.append(coro)
-                g_submitted_count += 1 # Use global count
-            logging.info(f"Submitted {g_submitted_count} tasks from dataset for processing.")
-            if g_submitted_count == 0:
-                 logging.warning("No tasks were yielded from the dataset generator. Check filters or file content.")
-                 # No need to run gather if no tasks were submitted
-                 results_raw = []
-            else:
-                 # Run tasks concurrently and gather results
-                 results_raw = await asyncio.gather(*async_tasks, return_exceptions=True)
+    # Always process from dataset.json
+    task_source = g_config.absolute_dataset_file # Use global config
+    logging.info(f"Processing tasks iteratively from dataset file: {task_source}")
+    try:
+        # Iterate directly over the generator, don't load all into memory
+        task_generator = load_tasks_from_dataset(
+            dataset_path=task_source,
+            task_ids=g_config.task_ids, # Use global config
+            max_tasks=g_config.max_tasks # Use global config
+        )
+        for i, task_item in enumerate(task_generator):
+            # Create the coroutine for this task
+            # Pass total_tasks=None as we don't know the total count upfront from the generator easily
+            coro = process_single_task(task_item, g_config, agent, semaphore, i, total_tasks=None)
+            async_tasks.append(coro)
+            g_submitted_count += 1 # Use global count
 
-        except Exception as e:
-            logging.error(f"Error while iterating through dataset {task_source}: {e}", exc_info=True)
-            return # Exit if dataset iteration fails
+        logging.info(f"Submitted {g_submitted_count} tasks from dataset generator for processing.")
+        if g_submitted_count == 0:
+             logging.warning("No tasks were yielded from the dataset generator. Check filters or file content.")
+             # No need to run gather if no tasks were submitted
+             results_raw = []
+        else:
+             # Run tasks concurrently and gather results
+             results_raw = await asyncio.gather(*async_tasks, return_exceptions=True)
 
-    else: # Processing from directory
-        task_source = g_config.absolute_task_directory # Use global config
-        logging.info(f"Processing tasks from directory: {task_source}")
-        try:
-            task_files = get_task_files( # This returns a list of file paths
-                task_directory=task_source,
-                task_ids=g_config.task_ids, # Use global config
-                max_tasks=g_config.max_tasks # Use global config
-            )
-            g_submitted_count = len(task_files) # Assign to global count
-            if not task_files:
-                logging.warning("No task files found or specified. Exiting.")
-                return
-            logging.info(f"Prepared {g_submitted_count} task files to process.")
+    except Exception as e:
+        logging.error(f"Error while iterating through dataset {task_source}: {e}", exc_info=True)
+        return # Exit if dataset iteration fails
 
-            # Create coroutine tasks for each file path
-            async_tasks = [
-                process_single_task(file_path, g_config, agent, semaphore, i, g_submitted_count) # Use global config and count
-                for i, file_path in enumerate(task_files)
-            ]
-            # Run tasks concurrently and gather results
-            results_raw = await asyncio.gather(*async_tasks, return_exceptions=True)
-
-        except Exception as e:
-            logging.error(f"Error processing tasks from directory {task_source}: {e}", exc_info=True)
-            return
-
-    # 5. Wait for all tasks to complete
+    # 5. Wait for all tasks to complete (same logic, but results_raw might be empty)
     # The results_raw variable now primarily holds exceptions if any occurred during gather,
     # or None if the coroutine finished without returning (which is our case now).
     # Actual results are in g_results. We just need to log any gather-level exceptions.
@@ -391,16 +353,12 @@ if __name__ == "__main__":
         default=None, # Default from config
         help="Maximum number of tasks to process (default: process all)"
     )
+    # Removed --use_dataset_json argument
     parser.add_argument(
-        "--use_dataset_json",
-        action='store_true', # Makes it a boolean flag
-        help="Load tasks from dataset.json instead of individual files in task_directory"
-    )
-    parser.add_argument(
-        "--task_directory",
+        "--dataset_directory", # Renamed argument
         type=str,
-        default="../data/training", # Default from config
-        help="Path to task directory (if not using --use_dataset_json) or parent directory of dataset.json (if using --use_dataset_json)"
+        default="../data", # Default points to the directory containing dataset.json
+        help="Path to the directory containing dataset.json"
     )
     parser.add_argument(
         "--max_concurrent_tasks",

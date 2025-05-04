@@ -2,7 +2,7 @@
 
 ## Current work focus
 
-The project is currently in **Phase 2: Benchmarking Agent Reasoning**. Following the completion of the synthetic data generation interface (Phase 1), the focus is now on implementing, testing, and refining the benchmarking suite to evaluate language model reasoning on ARC tasks.
+The agent refactoring task is complete. Awaiting the next task. The project remains in **Phase 2: Benchmarking Agent Reasoning**.
 
 ## Recent changes (Phase 2)
 
@@ -53,11 +53,24 @@ The project is currently in **Phase 2: Benchmarking Agent Reasoning**. Following
             *   Verified periodic saving to `code_gen_benchmark_partial_results.jsonl`.
             *   Verified final results saved to `benchmark/benchmark_results/code_gen_benchmark_results_20250504_165606.json`.
             *   Checked logs (`code_gen_benchmark_debug.log`) for correct execution.
-        *   **Created Code Verification Script:** Implemented `benchmark/verify_generated_code.py` to execute generated Python code against ARC task test cases.
+        *   **Created and Refined Code Verification Script:** Implemented `benchmark/verify_generated_code.py` to execute generated Python code against ARC task test cases. Refined it to use the `task_data` embedded directly within the benchmark results file, removing the need to load the separate `data/dataset.json`.
+        *   **Changed Default Data Source:** Modified `benchmark/config.py` to set `use_dataset_json` to `True` by default, ensuring benchmarks use `data/dataset.json` unless overridden.
+        *   **Refactored Agent Structure:**
+            *   Created `agents/` directory.
+            *   Moved `benchmark/simple_agent.py` to `agents/reasoning_trace_generator.py`.
+            *   Moved `benchmark/code_generating_agent.py` to `agents/reasoning_code_generator.py`.
+            *   Updated import paths in `benchmark/generate_reasoning_traces.py`, `benchmark/run_code_generation_benchmark.py`, and `benchmark/verify_generated_code.py`.
+        *   **Refactored Utility Structure:**
+            *   Created `utilities/` directory.
+            *   Moved `benchmark/config.py` to `utilities/config.py`.
+            *   Moved `benchmark/data_loader.py` to `utilities/data_loader.py`.
+            *   Moved `benchmark/model_utils.py` to `utilities/model_utils.py`.
+            *   Updated import paths in all affected scripts (`benchmark/*`, `agents/*`, `auxiliary_utilities/*`).
+        *   **Updated Documentation:** Updated `memory_bank/systemPatterns.md`, `memory_bank/techContext.md`, and `memory_bank/activeContext.md` to reflect the new agent and utility structure.
 
 ## Next steps (Phase 2)
 
-*   **Run Code Verification Script:** Execute `benchmark/verify_generated_code.py` on the results from the code generation benchmark (`code_gen_benchmark_results_20250504_165606.json`) to assess the correctness of the generated code. (Next immediate step).
+*   **Run Code Verification Script:** Execute the updated `benchmark/verify_generated_code.py` on the results from the code generation benchmark (e.g., `code_gen_benchmark_results_*.json`) to assess the correctness of the generated code. (Next immediate step).
 *   **Analyze Verification Results:** Review the output and logs (`code_verification_debug.log`) from the verification script.
 *   **Analyze Reasoning Data:** Review the merged reasoning data in `data/traces_store.json` (from the reasoning benchmark run).
 *   **Analyze Code Generation Results (Qualitative):** Review the raw output JSON (`code_gen_benchmark_results_...json`) for qualitative insights into reasoning and code structure, especially for tasks that failed verification.
@@ -70,9 +83,11 @@ The project is currently in **Phase 2: Benchmarking Agent Reasoning**. Following
 *   Model selection and parameters are centralized in `benchmark/config.py`.
 *   Error handling for model API calls and file I/O is implemented.
 *   The benchmark currently focuses on generating reasoning for 'train' examples only.
-*   **Data loading now supports two methods:**
-    *   Loading individual task files from a directory (default).
-    *   Loading tasks *iteratively* from a single `dataset.json` file (using `--use_dataset_json` flag). This avoids loading the entire dataset into memory at once.
+*   **Benchmark Data Loading:**
+    *   The benchmark generation scripts (`generate_reasoning_traces.py`, `run_code_generation_benchmark.py`) load tasks *iteratively* from `data/dataset.json` by default (controlled by `use_dataset_json` in `config.py`).
+    *   The generated results files embed the necessary `task_data` (including test cases) within each result entry.
+*   **Code Verification:**
+    *   The `verify_generated_code.py` script reads a benchmark results file and uses the `task_data` embedded within it for verification. It no longer requires a separate `dataset.json` input.
 *   Benchmark configuration is now handled via a combination of `config.py` defaults and command-line argument overrides.
 *   JSON output includes detailed metadata and the full prompt structure.
 *   **Concurrency control:** `asyncio.Semaphore` is used in both benchmark scripts (`generate_reasoning_traces.py`, `run_code_generation_benchmark.py`) to limit the number of tasks processed simultaneously, controlled by `max_concurrent_tasks` in the configuration (defaulting to 5, overrideable via CLI).

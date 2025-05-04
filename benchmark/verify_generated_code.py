@@ -6,7 +6,7 @@ import sys
 import traceback
 import logging
 import time
-from data_loader import load_tasks_from_dataset # Reuse data loading logic
+# Removed: from data_loader import load_tasks_from_dataset
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -115,8 +115,8 @@ def execute_generated_code(code_string, input_grid, task_id):
 
 # --- Main Verification Logic ---
 
-def verify_results(results_file, arc_data_path, use_dataset_json):
-    """Loads results, loads tasks, executes code, and reports verification."""
+def verify_results(results_file):
+    """Loads results (which include task data), executes code, and reports verification."""
     logging.info(f"Loading benchmark results from: {results_file}")
     try:
         with open(results_file, 'r', encoding='utf-8') as f:
@@ -140,21 +140,7 @@ def verify_results(results_file, arc_data_path, use_dataset_json):
         print(f"Error loading results file: {e}")
         return
 
-    logging.info(f"Loading ARC tasks from: {arc_data_path} (using_dataset_json={use_dataset_json})")
-    try:
-        if use_dataset_json:
-            # Load all tasks into memory from dataset.json for easier lookup
-            # Note: This might be memory intensive for very large datasets
-            arc_tasks = {task['task_id']: task for task in load_tasks_from_dataset(arc_data_path)}
-            logging.info(f"Loaded {len(arc_tasks)} tasks from {arc_data_path}")
-        else:
-            # Load tasks individually as needed (more memory efficient)
-            arc_tasks = {} # Will populate on demand
-            logging.info(f"Set up to load tasks individually from directory: {arc_data_path}")
-    except Exception as e:
-        logging.error(f"Error loading ARC tasks: {e}")
-        print(f"Error loading ARC tasks: {e}")
-        return
+    # Removed loading of separate dataset.json
 
     # --- Verification Loop ---
     total_tasks_processed = 0
@@ -195,40 +181,11 @@ def verify_results(results_file, arc_data_path, use_dataset_json):
         tasks_with_code += 1
         logging.info(f"Verifying Task ID: {task_id}")
 
-        # --- Load ARC Task Data ---
-        task_data = arc_tasks.get(task_id)
-        if not task_data and not use_dataset_json:
-            # Try loading individually from training/ or evaluation/ subdirs
-            found_task_file = False
-            for subdir in ["training", "evaluation"]:
-                potential_path = os.path.join(arc_data_path, subdir, f"{task_id}.json")
-                if os.path.exists(potential_path):
-                    try:
-                        with open(potential_path, 'r', encoding='utf-8') as f:
-                            task_data = json.load(f)
-                        arc_tasks[task_id] = task_data # Cache it
-                        logging.info(f"Task {task_id}: Loaded task data from {potential_path}")
-                        found_task_file = True
-                        break # Stop searching once found
-                    except Exception as e:
-                        logging.error(f"Task {task_id}: Error loading task file {potential_path}: {e}")
-                        # Mark as missing data even if found but failed to load
-                        tasks_missing_data += 1
-                        task_data = None # Ensure task_data is None if loading failed
-                        found_task_file = True # Treat loading error as finding it but failing
-                        break
-
-            if not found_task_file:
-                logging.warning(f"Task {task_id}: ARC task file not found in {os.path.join(arc_data_path, 'training')} or {os.path.join(arc_data_path, 'evaluation')}")
-                tasks_missing_data += 1
-                continue
-            elif task_data is None: # Handle case where file existed but failed to load
-                # Error already logged, just continue to next result
-                continue
-
-        elif not task_data and use_dataset_json:
-             logging.warning(f"Task {task_id}: Task data not found in the loaded dataset.json.")
-             tasks_missing_data += 1
+        # --- Get Embedded ARC Task Data ---
+        task_data = result.get("task_data") # Get data directly from result
+        if not task_data or not isinstance(task_data, dict):
+             logging.warning(f"Task {task_id}: Embedded 'task_data' not found or invalid in results file. Skipping.")
+             tasks_missing_data += 1 # Keep track of results missing embedded data
              continue
 
         # --- Execute and Compare Test Cases ---
@@ -286,8 +243,7 @@ def verify_results(results_file, arc_data_path, use_dataset_json):
     # --- Print Summary Report ---
     print("\n--- Code Verification Summary ---")
     print(f"Results File:          {results_file}")
-    print(f"ARC Data Path:         {arc_data_path}")
-    print(f"Using dataset.json:    {use_dataset_json}")
+    # Removed ARC Dataset File line
     print("-" * 30)
     print(f"Total Results Entries: {len(results)}")
     print(f"Tasks Processed:       {total_tasks_processed}")
@@ -305,21 +261,13 @@ def verify_results(results_file, arc_data_path, use_dataset_json):
 # --- Command Line Interface ---
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Verify generated Python code for ARC tasks against test cases.")
+    parser = argparse.ArgumentParser(description="Verify generated Python code for ARC tasks using task data embedded in the results file.") # Updated description
     parser.add_argument("results_file", help="Path to the benchmark results JSON file (e.g., code_gen_benchmark_results_*.json).")
-    parser.add_argument("--arc_data_path", default="data", help="Path to the ARC dataset (directory containing task .json files or the dataset.json file).")
-    parser.add_argument("--use_dataset_json", action="store_true", help="Load tasks from a single 'dataset.json' file within the arc_data_path instead of individual task files.")
+    # Removed --arc_data_dir argument
 
     args = parser.parse_args()
 
-    # Determine the actual path to dataset.json if needed
-    data_path_to_use = args.arc_data_path
-    if args.use_dataset_json:
-        dataset_json_path = os.path.join(args.arc_data_path, "dataset.json")
-        if not os.path.exists(dataset_json_path):
-             print(f"Error: --use_dataset_json specified, but {dataset_json_path} not found.")
-             logging.error(f"--use_dataset_json specified, but {dataset_json_path} not found.")
-             sys.exit(1)
-        data_path_to_use = dataset_json_path # Pass the specific file path
+    # Removed dataset_json_path construction and check
 
-    verify_results(args.results_file, data_path_to_use, args.use_dataset_json)
+    # Call verify_results with only the results file path
+    verify_results(args.results_file)
