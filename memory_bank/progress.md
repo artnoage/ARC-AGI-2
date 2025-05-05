@@ -68,8 +68,10 @@
     *   Signal handling for graceful shutdown
     *   Best-of flag to generate multiple responses for each task. **The issue where this was not processing multiple attempts has been identified and fixed.**
     *   Consistent data structure with all responses stored as lists.
-*   The code benchmark uses `CodeGeneratingAgent` to generate Python code that is executed and verified.
-*   The direct answer benchmark uses `DirectAnswerAgent` to generate output grids that are directly compared to expected outputs.
+    *   The code benchmark uses `CodeGeneratingAgent` to generate Python code that is executed and verified.
+    *   The direct answer benchmark uses `DirectAnswerAgent` to generate output grids that are directly compared to expected outputs.
+    *   **Fixed Delayed Argument Parsing Error:** Identified and removed duplicate argument parsing blocks in `benchmark/run_code_benchmark.py`, `benchmark/run_direct_benchmark.py`, `synthetic_data_generators/generate_code_data.py`, and `synthetic_data_generators/generate_reasoning_data.py`.
+    *   **Added Solved/Unsolved Task IDs to Benchmark Metadata:** Modified the `save_final_results` function in `benchmark/run_code_benchmark.py` and `benchmark/run_direct_benchmark.py` to include lists of solved and unsolved task IDs in the metadata.
 
 ## What's left to build
 

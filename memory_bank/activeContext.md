@@ -54,6 +54,10 @@ Recently, work has focused on addressing an issue with the "best of" functionali
     *   Successfully ran reasoning and code data generation scripts.
     *   Merged reasoning results into `data/traces_store.json`.
     *   Created and refined the code verification script.
+*   **Fixed Delayed Argument Parsing Error:**
+    *   Identified and removed duplicate argument parsing blocks in `benchmark/run_code_benchmark.py`, `benchmark/run_direct_benchmark.py`, `synthetic_data_generators/generate_code_data.py`, and `synthetic_data_generators/generate_reasoning_data.py`.
+*   **Added Solved/Unsolved Task IDs to Benchmark Metadata:**
+    *   Modified the `save_final_results` function in `benchmark/run_code_benchmark.py` and `benchmark/run_direct_benchmark.py` to include lists of solved and unsolved task IDs in the metadata.
 
 ## Next steps
 
@@ -61,13 +65,13 @@ Recently, work has focused on addressing an issue with the "best of" functionali
     *   **Run Code Verification Script:** Execute `synthetic_data_generators/verify_generated_code.py` on the results from the code generation run (e.g., `synthetic_data_generators/synthetic_data/code_data/code_data_results_20250504_165606.json`) to assess the correctness of the generated code. **(Next immediate step for Phase 2)**.
     *   **Analyze Verification Results:** Review the output and logs (`synthetic_data_generators/synthetic_data/code_verification.log`) from the verification script.
     *   **Analyze Reasoning Data:** Review the merged reasoning data in `data/traces_store.json` (from the reasoning data generation run).
-    *   **Analyze Code Generation Results (Qualitative):** Review the raw output JSON (`synthetic_data_generators/synthetic_data/code_data/code_data_results_20250504_165606.json`) for qualitative insights into reasoning and code structure, especially for tasks that failed verification.
+    *   **Analyze Code Generation Results (Qualitative):** After verification, perform a qualitative review of the reasoning and code in `synthetic_data_generators/synthetic_data/code_data/code_data_results_20250504_165606.json`, especially for failed tasks.
     *   **Update `.gitignore`:** Add `synthetic_data_generators/synthetic_data/` to `.gitignore`.
     *   **Consider Further Data Generation:** Decide if additional data generation runs are needed.
     *   **Refine Agents/Prompting:** Based on verification results and qualitative analysis, consider refinements.
 *   **Phase 3 (Real Benchmarking):**
-    *   Run the code benchmarking script `benchmark/run_code_benchmark.py` with the corrected "best of" functionality to evaluate model performance on ARC tasks.
-    *   Run the new direct answer benchmarking script `benchmark/run_direct_benchmark.py` to evaluate model performance on directly generating answers without code.
+    *   Run the code benchmarking script `benchmark/run_code_benchmark.py` with appropriate parameters (e.g., `python benchmark/run_code_benchmark.py --model_identifier GEMINI_FLASH --max_tasks 10 --max_concurrent_tasks 3 --best_of 3`) to evaluate model performance on ARC tasks, now with the corrected "best of" functionality.
+    *   Run the new direct answer benchmarking script `benchmark/run_direct_benchmark.py` with similar parameters to evaluate model performance on directly generating answers without code.
     *   Test the best-of flag with both benchmark scripts to generate multiple responses for each task.
     *   Compare the results between the code-based and direct answer approaches.
     *   Analyze the benchmark results, which include information about whether the generated code/answers were successful.
@@ -99,7 +103,7 @@ Recently, work has focused on addressing an issue with the "best of" functionali
         *   Results are accumulated in a global list (`g_results`).
         *   **Partial results:** New results are appended periodically to `benchmark/benchmark_results/code_benchmark/code_benchmark_partial_results.jsonl` or `benchmark/benchmark_results/direct_benchmark/direct_benchmark_partial_results.jsonl`.
         *   **Final results:** All accumulated results are saved to JSONL files in their respective directories.
-        *   Include detailed metadata about the benchmark runs, including verification/accuracy statistics.
+        *   Include detailed metadata about the benchmark runs, including verification/accuracy statistics, and now **lists of solved and unsolved task IDs**.
         *   **Similar to the synthetic data generators, the timestamp for the results file is generated once at the beginning of the script execution and stored in a global variable (`g_timestamp`) to ensure all concurrent tasks write to the same file.**
 *   **Data Structure Consistency:**
     *   All responses (prompt_messages, reasoning, python_code, output_grid, etc.) are now stored as lists, even when best_of is 1.

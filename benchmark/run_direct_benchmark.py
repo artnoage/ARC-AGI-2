@@ -141,6 +141,19 @@ def save_final_results(interrupted=False):
     total_answers = g_answer_correct_count + g_answer_incorrect_count
     accuracy_rate = (g_answer_correct_count / total_answers * 100) if total_answers > 0 else 0
 
+    solved_task_ids = []
+    unsolved_task_ids = []
+
+    for result_entry in g_results:
+        task_id = result_entry.get("task_id", "unknown_task")
+        # Check if any attempt for this task was correct
+        solved = any(correct for correct in result_entry.get("answer_correct", [False]))
+        
+        if solved:
+            solved_task_ids.append(task_id)
+        else:
+            unsolved_task_ids.append(task_id)
+
     metadata = {
         "entry_type": "metadata",
         "benchmark_type": "direct_answer_generation",
@@ -157,7 +170,9 @@ def save_final_results(interrupted=False):
         "accuracy_rate_percent": round(accuracy_rate, 2),
         "task_source": "dataset.json",
         "max_concurrent_tasks": g_config.max_concurrent_tasks,
-        "total_runtime_seconds": round(total_time, 2)
+        "total_runtime_seconds": round(total_time, 2),
+        "solved_task_ids": solved_task_ids,
+        "unsolved_task_ids": unsolved_task_ids
     }
 
     # Define the subdirectory and filename for benchmark results
@@ -624,51 +639,6 @@ if __name__ == "__main__":
     try:
         # Pass the parsed task_range to the benchmark function
         asyncio.run(run_direct_benchmark(args, task_range=task_range))
-    except KeyboardInterrupt:
-        logging.info("Benchmark run interrupted by user.")
-    except Exception as e:
-        logging.error(f"Benchmark run failed with an unexpected error: {e}", exc_info=True)
-
-    # --- Argument Parsing ---
-    parser = argparse.ArgumentParser(description="Run Direct Answer ARC Benchmark")
-    parser.add_argument(
-        "--model_identifier",
-        type=str,
-        default=ModelOption.LOCAL_0.name,
-        choices=[option.name for option in ModelOption],
-        help=f"Model identifier to use (default: {ModelOption.LOCAL_0.name})"
-    )
-    parser.add_argument(
-        "--max_tasks",
-        type=int,
-        default=None,
-        help="Maximum number of tasks to process (default: process all)"
-    )
-    parser.add_argument(
-        "--dataset_directory",
-        type=str,
-        default="../data",
-        help="Path to the directory containing dataset.json"
-    )
-    parser.add_argument(
-        "--max_concurrent_tasks",
-        type=int,
-        default=5,
-        help="Maximum number of tasks to process concurrently (default: 5)"
-    )
-    parser.add_argument(
-        "--best_of",
-        type=int,
-        default=1,
-        help="Number of responses to generate for each task (default: 1)"
-    )
-    # --- End Argument Parsing ---
-
-    args = parser.parse_args()
-
-    # Run the async function
-    try:
-        asyncio.run(run_direct_benchmark(args))
     except KeyboardInterrupt:
         logging.info("Benchmark run interrupted by user.")
     except Exception as e:
