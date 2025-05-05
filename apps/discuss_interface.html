@@ -45,15 +45,46 @@
                         <div id="task_preview"></div>
                     </div>
 
-                    <!-- Chat Area -->
-                    <div id="chat_area">
-                        <div class="section_header">Discussion</div>
-                        <div id="chat_messages"></div>
-                        <div id="chat_input_area">
-                            <textarea id="chat_input" placeholder="Type your message here..."></textarea>
-                            <button id="send_message_btn">Send</button>
+                <!-- Chat Area -->
+                <div id="chat_area">
+                    <div class="section_header">
+                        Discussion
+                        <button id="clear_history_btn" class="secondary_btn" title="Clear conversation history for this task">Clear History</button>
+                    </div>
+                    <div id="chat_messages"></div>
+                    <div id="chat_input_area">
+                        <textarea id="chat_input" placeholder="Type your message here..."></textarea>
+                        <button id="send_message_btn">Send</button>
+                    </div>
+                </div>
+                
+                <!-- Code Execution Area -->
+                <div id="code_execution_area">
+                    <div class="section_header">Python Code Execution</div>
+                    <div id="code_execution_content">
+                        <div id="code_input_container">
+                            <label for="code_input">Python Code:</label>
+                            <textarea id="code_input" placeholder="def solve_task(input_grid):
+    # Your code here
+    # input_grid is a 2D list (list of lists)
+    # Return a 2D list representing the output grid
+    return input_grid"></textarea>
+                        </div>
+                        <div id="grid_input_container">
+                            <label for="grid_input">Input Grid (JSON format):</label>
+                            <textarea id="grid_input" placeholder="[[0, 0, 0], [0, 1, 0], [0, 0, 0]]"></textarea>
+                        </div>
+                        <div id="code_execution_controls">
+                            <button id="execute_code_btn">Execute Code</button>
+                            <span id="execution_status"></span>
+                        </div>
+                        <div id="code_output_container">
+                            <label>Output:</label>
+                            <div id="grid_output_display"></div>
+                            <div id="code_error_display"></div>
                         </div>
                     </div>
+                </div>
                 </div>
 
                 <!-- API Key Settings -->
@@ -74,6 +105,12 @@
                                 <option value="gemini-flash">Gemini 2.5 Flash</option>
                                 <option value="gpt">GPT-4o Mini</option>
                             </select>
+                        </div>
+                        <div class="api_row">
+                            <label for="temperature_slider">Temperature:</label>
+                            <input type="range" id="temperature_slider" min="0" max="1" step="0.1" value="0.7">
+                            <span id="temperature_value">0.7</span>
+                            <span class="slider_hint">(Lower: More focused, Higher: More creative)</span>
                         </div>
                     </div>
                 </div>

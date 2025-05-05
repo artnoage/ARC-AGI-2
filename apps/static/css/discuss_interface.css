@@ -77,6 +77,23 @@
     font-weight: bold;
     border-bottom: 1px solid #4a4a4a;
     color: #d4d4d4;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#clear_history_btn {
+    font-size: 0.8em;
+    padding: 3px 8px;
+    background-color: #555;
+    color: #d4d4d4;
+    border: 1px solid #777;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+#clear_history_btn:hover {
+    background-color: #777;
 }
 
 #task_navigation {
@@ -230,6 +247,27 @@
     min-width: 150px;
 }
 
+#temperature_slider {
+    width: 150px;
+    margin: 0 10px;
+    background-color: #3c3c3c;
+    cursor: pointer;
+}
+
+#temperature_value {
+    font-weight: bold;
+    color: #d4d4d4;
+    min-width: 30px;
+    text-align: center;
+}
+
+.slider_hint {
+    font-size: 0.8em;
+    color: #aaaaaa;
+    font-style: italic;
+    margin-left: 10px;
+}
+
 #save_key_btn {
     padding: 5px 15px;
     background-color: #4caf50;
@@ -339,6 +377,140 @@
 
 .output_preview::before {
     content: "Output";
+}
+
+/* Code Execution Area */
+#code_execution_area {
+    width: 70%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid #4a4a4a;
+    background-color: #2d2d2d;
+}
+
+#code_execution_content {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+#code_input_container, #grid_input_container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#code_input_container label, #grid_input_container label {
+    font-weight: bold;
+    color: #d4d4d4;
+}
+
+#code_input, #grid_input {
+    min-height: 120px;
+    padding: 10px;
+    font-family: monospace;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    border: 1px solid #555;
+    border-radius: 3px;
+    resize: vertical;
+}
+
+#code_input {
+    min-height: 200px;
+}
+
+#code_execution_controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 10px 0;
+}
+
+#execute_code_btn {
+    padding: 8px 15px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+#execute_code_btn:hover {
+    background-color: #3e8e41;
+}
+
+#execution_status {
+    color: #aaaaaa;
+    font-style: italic;
+}
+
+#code_output_container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px;
+    background-color: #1e1e1e;
+    border: 1px solid #555;
+    border-radius: 3px;
+}
+
+#code_output_container label {
+    font-weight: bold;
+    color: #d4d4d4;
+}
+
+#grid_output_display {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    min-height: 50px;
+}
+
+.output_display_container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.matrix_container, .visual_container {
+    flex: 1;
+    padding: 10px;
+    background-color: #2a2a2a;
+    border-radius: 3px;
+}
+
+.matrix_container h4, .visual_container h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #d4d4d4;
+    font-size: 14px;
+    text-align: center;
+}
+
+.matrix_text {
+    font-family: monospace;
+    color: #d4d4d4;
+    background-color: #1e1e1e;
+    padding: 10px;
+    border-radius: 3px;
+    overflow-x: auto;
+    white-space: pre;
+    margin: 0;
+}
+
+#code_error_display {
+    color: #ff6b6b;
+    font-family: monospace;
+    white-space: pre-wrap;
+    padding: 10px;
+    background-color: #2a2a2a;
+    border-radius: 3px;
+    display: none;
 }
 
 /* Responsive adjustments */

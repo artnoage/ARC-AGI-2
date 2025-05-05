@@ -10,6 +10,10 @@ This project involves adapting the original ARC-AGI dataset and interface for ad
 *   Implement features for adding and managing step-by-step reasoning traces for task solutions.
 *   Introduce a distance metric to guide users during task solving.
 *   Define a data structure (`data/nature_of_data.md`) to store tasks, variations, traces, and contributions.
+*   Create a separate discussion interface (`apps/discuss_interface.html`) for AI-assisted task analysis and discussion.
+*   Integrate the discussion interface with a language model API (OpenRouter) for AI responses.
+*   Add features to the discussion interface for controlling API parameters (e.g., temperature).
+*   Implement a Python code execution environment within the discussion interface for testing code solutions.
 
 **Phase 2: Synthetic Data Generation & Verification**
 *   Develop tools (`synthetic_data_generators/`) for generating synthetic data, including reasoning traces and code solutions, from language models.

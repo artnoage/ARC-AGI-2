@@ -9,19 +9,31 @@ The project encompasses three main architectural areas:
 ```mermaid
 graph TD
     subgraph Browser
-        UI[Testing Interface HTML/JS]
+        TestingUI[Testing Interface HTML/JS]
+        DiscussUI[Discussion Interface HTML/JS]
     end
     subgraph Server/Data
         ARC[ARC Dataset Files]
         DS[Data Storage (JSON w/ Metadata)]
+        CodeExec[Code Execution Endpoint]
+    end
+    subgraph Utilities
+        CodeExecUtil[utilities/code_execution.py]
     end
 
-    UI -- Loads/Displays --> ARC
-    UI -- Saves Transformations/Traces --> DS
-    ARC -- Provides Base Tasks --> UI
+    TestingUI -- Loads/Displays --> ARC
+    TestingUI -- Saves Transformations/Traces --> DS
+    DiscussUI -- Loads/Displays --> ARC
+    DiscussUI -- Interacts with --> CodeExec
+    CodeExec -- Uses --> CodeExecUtil
+    ARC -- Provides Base Tasks --> TestingUI
+    ARC -- Provides Base Tasks --> DiscussUI
 ```
-*   A client-side web application (`apps/testing_interface.html`) allows users to interact with ARC tasks.
-*   User actions (solving, transforming, adding traces) generate new data stored alongside original tasks, often as enriched JSON files.
+*   Two client-side web applications allow users to interact with ARC tasks:
+    *   The testing interface (`apps/testing_interface.html`) for task solving and synthetic data creation.
+    *   The discussion interface (`apps/discuss_interface.html`) for AI-assisted task analysis and discussion, including a Python code execution environment.
+*   User actions in the testing interface (solving, transforming, adding traces) generate new data stored alongside original tasks, often as enriched JSON files.
+*   The discussion interface interacts with a server-side endpoint (`/arc2/execute_code`) for executing Python code in a sandbox environment, utilizing the `utilities.code_execution.py` utility.
 
 **Phase 2: Synthetic Data Generation & Verification**
 

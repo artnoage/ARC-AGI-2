@@ -6,11 +6,16 @@ var UNIQUE_TASK_IDS = [];
 var TASK_VERSIONS_MAP = {};
 var socket = null;
 var API_KEY = null;
+var CHAT_MEMORY = {}; // Memory storage for chat messages
+var TEMPERATURE = 0.7; // Default temperature value for API calls
 
 // Initialize the interface
 $(document).ready(function() {
     // Initialize WebSocket connection
     connectWebSocket();
+    
+    // Initialize chat memory
+    initChatMemory();
 
     // --- Username Handling (including Cookie) ---
     const savedUsername = getCookie('username');
@@ -77,6 +82,23 @@ $(document).ready(function() {
         $('#model_selector').val(savedModel);
         OpenRouterAPI.setSelectedModel(savedModel);
     }
+    
+    // Temperature slider event
+    $('#temperature_slider').on('input', function() {
+        const value = parseFloat($(this).val());
+        TEMPERATURE = value;
+        $('#temperature_value').text(value.toFixed(1));
+        localStorage.setItem('temperature_value', value);
+    });
+    
+    // Load saved temperature
+    const savedTemperature = localStorage.getItem('temperature_value');
+    if (savedTemperature !== null) {
+        const tempValue = parseFloat(savedTemperature);
+        TEMPERATURE = tempValue;
+        $('#temperature_slider').val(tempValue);
+        $('#temperature_value').text(tempValue.toFixed(1));
+    }
 
     // Send message button
     $('#send_message_btn').click(function() {
@@ -113,6 +135,25 @@ $(document).ready(function() {
         if (event.keyCode === 13) {
             gotoTaskById();
         }
+    });
+    
+    // Clear history button
+    $('#clear_history_btn').click(function() {
+        if (CURRENT_TASK_ID) {
+            if (confirm(`Are you sure you want to clear the conversation history for task ${CURRENT_TASK_ID}?`)) {
+                clearTaskMemory(CURRENT_TASK_ID);
+                // Refresh the chat display
+                $('#chat_messages').empty();
+                addSystemMessage(`Conversation history cleared for task ${CURRENT_TASK_ID}.`);
+            }
+        } else {
+            addSystemMessage("No task selected. Please select a task first.");
+        }
+    });
+    
+    // Execute code button
+    $('#execute_code_btn').click(function() {
+        executeCode();
     });
 });
 
@@ -262,6 +303,9 @@ function loadTask(taskId, versionIndex = 0) {
 
         // Add system message about the loaded task
         addSystemMessage(`Loaded task ID: ${taskId}`);
+        
+        // Load chat history for this task
+        displayChatHistory();
 
     } catch (e) {
         console.error(`Error processing task ${taskId}:`, e);
@@ -399,38 +443,19 @@ function sendUserMessage() {
     const modelInfo = OpenRouterAPI.getSelectedModel();
     console.log(`Using model: ${modelInfo.name} (${modelInfo.id})`);
     
-    // If we have an API key, try to use the OpenRouter API
+    // If we have an API key, use the OpenRouter API
     if (API_KEY) {
-        // Use a timeout to simulate the API call for now
-        // In production, this would be replaced with the actual API call
-        setTimeout(() => {
-            try {
+        // Use the OpenRouter API to get a response
+        OpenRouterAPI.sendMessage(API_KEY, messageText, taskContext, TEMPERATURE)
+            .then(response => {
                 removeTypingIndicator();
-                
-                // For testing, simulate a response based on the user's message
-                let aiResponse = "";
-                
-                if (messageText.toLowerCase().includes("hello") || messageText.toLowerCase().includes("hi")) {
-                    aiResponse = "Hello! I'm here to help you understand ARC tasks. What would you like to discuss?";
-                } 
-                else if (messageText.toLowerCase().includes("what is arc")) {
-                    aiResponse = "The Abstraction and Reasoning Corpus (ARC) is a dataset designed to measure general AI reasoning capabilities. It consists of tasks where you need to infer a pattern from a few examples and apply it to new inputs.";
-                }
-                else if (CURRENT_TASK_ID && (messageText.toLowerCase().includes("this task") || messageText.toLowerCase().includes("current task"))) {
-                    aiResponse = `This task (ID: ${CURRENT_TASK_ID}) requires you to analyze the pattern in the training examples shown on the left. Look for transformations between input and output grids, such as rotations, color changes, or pattern recognition.`;
-                }
-                else {
-                    aiResponse = `I would use the ${modelInfo.name} model to analyze this. In a real implementation, I would connect to OpenRouter to provide helpful insights about ARC tasks and reasoning strategies.`;
-                }
-                
-                addAiMessage(aiResponse);
-            } catch (error) {
-                // Handle errors
+                addAiMessage(response);
+            })
+            .catch(error => {
                 removeTypingIndicator();
                 console.error("Error getting AI response:", error);
                 addSystemMessage(`Error: ${error.message || "Failed to get response from AI model"}`);
-            }
-        }, 1500);
+            });
     } else {
         // Remove typing indicator after a short delay
         setTimeout(() => {
@@ -449,6 +474,11 @@ function addUserMessage(text) {
     `;
     $('#chat_messages').append(messageHtml);
     scrollChatToBottom();
+    
+    // Save to memory if we have a current task
+    if (CURRENT_TASK_ID) {
+        addMessageToMemory(CURRENT_TASK_ID, 'user', text);
+    }
 }
 
 function addAiMessage(text) {
@@ -460,6 +490,11 @@ function addAiMessage(text) {
     `;
     $('#chat_messages').append(messageHtml);
     scrollChatToBottom();
+    
+    // Save to memory if we have a current task
+    if (CURRENT_TASK_ID) {
+        addMessageToMemory(CURRENT_TASK_ID, 'ai', text);
+    }
 }
 
 function addSystemMessage(text) {
@@ -470,6 +505,11 @@ function addSystemMessage(text) {
     `;
     $('#chat_messages').append(messageHtml);
     scrollChatToBottom();
+    
+    // Save to memory if we have a current task and it's not a welcome message for a new task
+    if (CURRENT_TASK_ID && !text.startsWith("Welcome to the discussion for this task")) {
+        addMessageToMemory(CURRENT_TASK_ID, 'system', text);
+    }
 }
 
 function addTypingIndicator() {
@@ -500,6 +540,188 @@ function removeTypingIndicator() {
 function scrollChatToBottom() {
     const chatMessages = $('#chat_messages');
     chatMessages.scrollTop(chatMessages[0].scrollHeight);
+}
+
+// Chat Memory Management Functions
+
+// Initialize chat memory structure
+function initChatMemory() {
+    // Try to load existing memory from localStorage
+    const savedMemory = localStorage.getItem('arc_chat_memory');
+    if (savedMemory) {
+        try {
+            CHAT_MEMORY = JSON.parse(savedMemory);
+            console.log("Chat memory loaded from localStorage");
+        } catch (e) {
+            console.error("Error parsing saved chat memory:", e);
+            CHAT_MEMORY = {};
+        }
+    } else {
+        CHAT_MEMORY = {};
+    }
+    
+    // Ensure the current user has a memory object
+    if (!CHAT_MEMORY[USERNAME]) {
+        CHAT_MEMORY[USERNAME] = {};
+    }
+}
+
+// Save chat memory to localStorage
+function saveChatMemory() {
+    try {
+        localStorage.setItem('arc_chat_memory', JSON.stringify(CHAT_MEMORY));
+        console.log("Chat memory saved to localStorage");
+    } catch (e) {
+        console.error("Error saving chat memory:", e);
+        // If localStorage is full, we might need to clear some old conversations
+        if (e.name === 'QuotaExceededError') {
+            pruneOldestConversations();
+            try {
+                localStorage.setItem('arc_chat_memory', JSON.stringify(CHAT_MEMORY));
+                console.log("Chat memory saved after pruning old conversations");
+            } catch (e2) {
+                console.error("Still unable to save chat memory after pruning:", e2);
+            }
+        }
+    }
+}
+
+// Add a message to memory
+function addMessageToMemory(taskId, role, content) {
+    if (!USERNAME || !taskId) return;
+    
+    // Ensure user and task structures exist
+    if (!CHAT_MEMORY[USERNAME]) {
+        CHAT_MEMORY[USERNAME] = {};
+    }
+    if (!CHAT_MEMORY[USERNAME][taskId]) {
+        CHAT_MEMORY[USERNAME][taskId] = [];
+    }
+    
+    // Add message with timestamp
+    CHAT_MEMORY[USERNAME][taskId].push({
+        role: role,
+        content: content,
+        timestamp: new Date().toISOString()
+    });
+    
+    // Save to localStorage
+    saveChatMemory();
+}
+
+// Get messages for a specific task
+function getTaskMessages(taskId) {
+    if (!USERNAME || !taskId || !CHAT_MEMORY[USERNAME] || !CHAT_MEMORY[USERNAME][taskId]) {
+        return [];
+    }
+    return CHAT_MEMORY[USERNAME][taskId];
+}
+
+// Clear messages for a specific task
+function clearTaskMemory(taskId) {
+    if (!USERNAME || !taskId || !CHAT_MEMORY[USERNAME]) return;
+    
+    // Delete the task's messages
+    if (CHAT_MEMORY[USERNAME][taskId]) {
+        delete CHAT_MEMORY[USERNAME][taskId];
+        saveChatMemory();
+        console.log(`Cleared chat memory for task ${taskId}`);
+        return true;
+    }
+    return false;
+}
+
+// Clear all messages for the current user
+function clearAllUserMemory() {
+    if (!USERNAME || !CHAT_MEMORY[USERNAME]) return;
+    
+    CHAT_MEMORY[USERNAME] = {};
+    saveChatMemory();
+    console.log(`Cleared all chat memory for user ${USERNAME}`);
+    return true;
+}
+
+// Prune oldest conversations if storage is full
+function pruneOldestConversations() {
+    if (!USERNAME || !CHAT_MEMORY[USERNAME]) return;
+    
+    const userMemory = CHAT_MEMORY[USERNAME];
+    const taskIds = Object.keys(userMemory);
+    
+    if (taskIds.length <= 1) return; // Keep at least one conversation
+    
+    // Find the oldest conversation based on the timestamp of the last message
+    let oldestTaskId = null;
+    let oldestTimestamp = Date.now();
+    
+    taskIds.forEach(taskId => {
+        const messages = userMemory[taskId];
+        if (messages.length > 0) {
+            const lastMessage = messages[messages.length - 1];
+            const timestamp = new Date(lastMessage.timestamp).getTime();
+            if (timestamp < oldestTimestamp) {
+                oldestTimestamp = timestamp;
+                oldestTaskId = taskId;
+            }
+        } else {
+            // If no messages, this is a candidate for removal
+            oldestTaskId = taskId;
+        }
+    });
+    
+    // Remove the oldest conversation
+    if (oldestTaskId) {
+        delete userMemory[oldestTaskId];
+        console.log(`Pruned oldest conversation for task ${oldestTaskId}`);
+    }
+}
+
+// Display chat history for the current task
+function displayChatHistory() {
+    if (!CURRENT_TASK_ID) return;
+    
+    // Clear current chat display
+    $('#chat_messages').empty();
+    
+    // Get messages for the current task
+    const messages = getTaskMessages(CURRENT_TASK_ID);
+    
+    if (messages.length === 0) {
+        // Add welcome message if no history
+        addSystemMessage("Welcome to the discussion for this task. Ask questions or discuss patterns you notice.");
+        return;
+    }
+    
+    // Add each message to the display
+    messages.forEach(message => {
+        if (message.role === 'user') {
+            const messageHtml = `
+                <div class="user_message">
+                    <div class="message_sender">${USERNAME}</div>
+                    <div class="message_content">${escapeHtml(message.content)}</div>
+                </div>
+            `;
+            $('#chat_messages').append(messageHtml);
+        } else if (message.role === 'ai') {
+            const messageHtml = `
+                <div class="ai_message">
+                    <div class="message_sender">AI Assistant</div>
+                    <div class="message_content">${escapeHtml(message.content).replace(/\n/g, '<br>')}</div>
+                </div>
+            `;
+            $('#chat_messages').append(messageHtml);
+        } else if (message.role === 'system') {
+            const messageHtml = `
+                <div class="system_message">
+                    <div class="message_content">${escapeHtml(message.content)}</div>
+                </div>
+            `;
+            $('#chat_messages').append(messageHtml);
+        }
+    });
+    
+    // Scroll to bottom
+    scrollChatToBottom();
 }
 
 // Logout function
@@ -586,4 +808,124 @@ function fitCellsToContainer(jqGrid, gridHeight, gridWidth, containerHeight, con
         width: cellSize + 'px',
         height: cellSize + 'px'
     });
+}
+
+// Code Execution Functions
+function executeCode() {
+    // Get code and input grid from UI
+    const code = $('#code_input').val().trim();
+    const inputGridText = $('#grid_input').val().trim();
+    
+    // Validate inputs
+    if (!code) {
+        $('#execution_status').text('Please enter Python code');
+        return;
+    }
+    
+    if (!inputGridText) {
+        $('#execution_status').text('Please enter an input grid');
+        return;
+    }
+    
+    // Parse input grid
+    let inputGrid;
+    try {
+        inputGrid = JSON.parse(inputGridText);
+        if (!Array.isArray(inputGrid) || !inputGrid.every(row => Array.isArray(row))) {
+            throw new Error('Input grid must be a 2D array');
+        }
+    } catch (e) {
+        $('#execution_status').text('Invalid input grid format: ' + e.message);
+        return;
+    }
+    
+    // Update status
+    $('#execution_status').text('Executing code...');
+    $('#code_error_display').hide();
+    $('#grid_output_display').empty();
+    
+    // Send to server
+    $.ajax({
+        url: '/arc2/execute_code',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            code: code,
+            input_grid: inputGrid
+        }),
+        success: function(response) {
+            if (response.success) {
+                // Display output grid
+                $('#execution_status').text('Execution successful');
+                displayOutputGrid(response.output_grid);
+            } else {
+                // Display error
+                $('#execution_status').text('Execution failed');
+                $('#code_error_display').text(response.error).show();
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#execution_status').text('Server error: ' + error);
+            $('#code_error_display').text('Failed to communicate with the server').show();
+        }
+    });
+}
+
+function displayOutputGrid(grid) {
+    if (!grid || !Array.isArray(grid)) {
+        $('#grid_output_display').text('Invalid output grid');
+        return;
+    }
+    
+    // Create a Grid object from the output
+    const outputGrid = convertSerializedGridToGridObject(grid);
+    
+    // Clear previous output
+    $('#grid_output_display').empty();
+    
+    // Create output display container with two sections
+    const outputContainer = $('<div class="output_display_container"></div>');
+    const matrixContainer = $('<div class="matrix_container"></div>');
+    const visualContainer = $('<div class="visual_container"></div>');
+    
+    // Add headers
+    matrixContainer.append('<h4>Matrix Output</h4>');
+    visualContainer.append('<h4>Visual Output</h4>');
+    
+    // Add matrix representation
+    const matrixText = $('<pre class="matrix_text"></pre>');
+    let matrixString = '';
+    for (let i = 0; i < outputGrid.height; i++) {
+        matrixString += '[';
+        for (let j = 0; j < outputGrid.width; j++) {
+            matrixString += outputGrid.grid[i][j];
+            if (j < outputGrid.width - 1) {
+                matrixString += ', ';
+            }
+        }
+        matrixString += ']';
+        if (i < outputGrid.height - 1) {
+            matrixString += ',\n';
+        }
+    }
+    matrixText.text(matrixString);
+    matrixContainer.append(matrixText);
+    
+    // Create visual grid container
+    const gridContainer = $('<div class="output_grid_container"></div>');
+    
+    // Fill the grid with data
+    fillJqGridWithData(gridContainer, outputGrid);
+    
+    // Size the cells appropriately
+    const containerSize = 200; // Fixed size for output display
+    fitCellsToContainer(gridContainer, outputGrid.height, outputGrid.width, containerSize, containerSize);
+    
+    // Add visual grid to its container
+    visualContainer.append(gridContainer);
+    
+    // Add both containers to the output display
+    outputContainer.append(matrixContainer);
+    outputContainer.append(visualContainer);
+    $('#grid_output_display').append(outputContainer);
 }

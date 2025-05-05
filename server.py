@@ -5,6 +5,7 @@ import time
 import shutil # For file copying
 from datetime import datetime, timedelta # For timestamp comparison
 from flask import Flask, send_from_directory, jsonify, request
+from utilities.code_execution import execute_generated_code
 from flask_socketio import SocketIO, emit
 from werkzeug.middleware.proxy_fix import ProxyFix # Import ProxyFix (RE-ADDED)
 
@@ -488,6 +489,24 @@ def handle_remove_variation(data):
             'task_id': task_id
         }, room=sid)
         logging.error(f"Failed to save dataset after removing version {version_number} of task {task_id}.")
+
+@app.route('/arc2/execute_code', methods=['POST'])
+def execute_python_code():
+    """Executes Python code in a sandbox and returns the result."""
+    code = request.json.get('code')
+    input_grid = request.json.get('input_grid')
+    
+    if not code or not input_grid:
+        return jsonify({'success': False, 'error': 'Missing code or input grid'})
+    
+    # Use the existing code_execution utility
+    output_grid, error_msg = execute_generated_code(code, input_grid, "discuss_interface")
+    
+    return jsonify({
+        'success': error_msg is None,
+        'output_grid': output_grid,
+        'error': error_msg
+    })
 
 @socketio.on('sign_variation')
 def handle_sign_variation(data):

@@ -5,8 +5,12 @@
 *   **Core:**
     *   ARC Dataset (JSON format): The fundamental data source.
 *   **Phase 1 (Synthetic Data Generation Interface):**
-    *   HTML, CSS, JavaScript: For the client-side testing interface (`apps/testing_interface.html`).
+    *   HTML, CSS, JavaScript: For the client-side testing interface (`apps/testing_interface.html`) and discussion interface (`apps/discuss_interface.html`).
     *   JSON: For storing task data, transformations, and reasoning traces.
+    *   **localStorage API:** Used for client-side storage of chat memory and API settings (including temperature) in the discussion interface.
+    *   **jQuery:** Used in the discussion interface for DOM manipulation and AJAX calls (specifically for code execution).
+    *   **OpenRouter API:** Integrated into the discussion interface for AI responses, including control over parameters like temperature.
+*   **Phase 2 (Synthetic Data Generation & Verification):**
 *   **Phase 2 (Synthetic Data Generation & Verification):**
     *   Python: Primary language for the synthetic data generation scripts and auxiliary utilities.
     *   `asyncio`: For asynchronous operations, especially model API calls.

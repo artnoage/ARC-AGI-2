@@ -21,6 +21,18 @@
     *   Correctly loading and displaying tasks from `dataset.json`.
     *   Matching the dark theme of the application.
     *   Resolving the duplicate 'Grid' identifier error.
+    *   **Implemented Temperature Slider:** Added a temperature slider to the API settings, allowing users to control the temperature parameter for AI responses. The selected temperature is saved in localStorage and passed to the OpenRouter API.
+*   **Chat Memory in Discussion Interface:** Chat memory functionality has been successfully implemented. This includes:
+    *   Username-based and task-specific memory storage using browser's localStorage.
+    *   Persistent conversations across page refreshes and task changes.
+    *   A "Clear History" button to delete conversation history for the current task.
+    *   Automatic pruning of oldest conversations if localStorage is full.
+    *   Saving and displaying system messages in the chat history.
+*   **Python Code Execution in Discussion Interface:** A Python code execution environment has been successfully implemented within the discussion interface. This includes:
+    *   A server-side endpoint (`/arc2/execute_code`) to execute Python code in a sandbox.
+    *   A UI for code input, input grid, execution, and output display.
+    *   The output display shows both a matrix representation and a visual grid representation of the execution result.
+    *   Error handling and display for code execution failures.
 
 **Phase 2: Synthetic Data Generation & Verification (Implemented, Needs Testing)**
 *   `synthetic_data_generators/` directory structure established.

@@ -53,9 +53,10 @@ function getSelectedModel() {
  * @param {string} apiKey - OpenRouter API key
  * @param {string} userMessage - User's message
  * @param {string} taskContext - Context about the current task
+ * @param {number} temperature - Temperature parameter for controlling randomness (0.0-1.0)
  * @returns {Promise} Promise that resolves with the AI response
  */
-async function sendMessageToOpenRouter(apiKey, userMessage, taskContext) {
+async function sendMessageToOpenRouter(apiKey, userMessage, taskContext, temperature = 0.7) {
     if (!apiKey) {
         throw new Error("API key is required");
     }
@@ -91,7 +92,7 @@ async function sendMessageToOpenRouter(apiKey, userMessage, taskContext) {
             body: JSON.stringify({
                 model: model.id,
                 messages: messages,
-                temperature: 0.7,
+                temperature: temperature,
                 stream: false
             })
         });
