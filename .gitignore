@@ -3,3 +3,5 @@
 __pycache__
 benchmark/benchmark_results/
 synthetic_data_generators/synthetic_data
+benchmark\benchmark_logs\code_benchmark_run.log
+benchmark\benchmark_logs\direct_benchmark_run.log
