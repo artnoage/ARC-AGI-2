@@ -80,13 +80,10 @@
     return input_grid"></textarea>
                         </div>
                         <div id="grid_input_section"> <!-- This will be the flex row container -->
-                            <div id="grid_input_left"> <!-- Left side -->
+                        <div id="grid_input_left"> <!-- Left side -->
                                 <div id="grid_input_container">
                                     <label for="grid_input">Input Grid (JSON format):</label>
                                     <textarea id="grid_input" placeholder="[[0, 0, 0], [0, 1, 0], [0, 0, 0]]"></textarea>
-                                </div>
-                                <div id="grid_input_controls">
-                                    <button id="visualize_input_btn">Visualize Input</button>
                                 </div>
                             </div>
                             <div id="grid_input_right"> <!-- Right side -->
@@ -95,21 +92,29 @@
                             </div>
                         </div>
                         <div id="code_execution_controls">
-                            <button id="execute_code_btn">Execute Code</button>
                             <span id="execution_status"></span>
                         </div>
-                        <div id="code_output_container">
-                            <label>Output:</label>
-                            <div id="grid_output_display"></div>
-                            <div id="code_error_display"></div>
+                        <div id="grid_output_section">
+                            <div id="grid_output_left">
+                                <div id="grid_output_container">
+                                    <label for="grid_output">Output Grid:</label>
+                                    <div id="matrix_output_display"></div>
+                                </div>
+                                <!-- Removed output controls from here -->
+                            </div>
+                            <div id="grid_output_right">
+                                <label>Visual Output:</label>
+                                <div id="visual_output_display"></div>
+                            </div>
                         </div>
+                        <div id="code_error_display"></div>
                     </div>
                 </div>
                 </div>
 
                 <!-- API Key Settings -->
                 <div id="api_settings">
-                    <div class="section_header">API Settings</div>
+                    <div class="section_header">Settings</div>
                     <div id="api_form">
                         <div class="api_row">
                             <label for="openrouter_key">OpenRouter API Key:</label>
@@ -131,8 +136,13 @@
                             <input type="range" id="temperature_slider" min="0" max="1" step="0.1" value="0.7">
                             <span id="temperature_value">0.7</span>
                             <span class="slider_hint">(Lower: More focused, Higher: More creative)</span>
-                        </div>
                     </div>
+                    <div id="execution_controls">
+                        <button id="visualize_input_btn">Visualize Input</button>
+                        <button id="visualize_output_btn">Visualize Output</button>
+                        <button id="execute_code_btn">Execute Code</button>
+                    </div>
+                </div>
                 </div>
             </div>
             <!-- End Discussion Interface -->

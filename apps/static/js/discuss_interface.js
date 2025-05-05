@@ -160,6 +160,11 @@ $(document).ready(function() {
     $('#visualize_input_btn').click(function() {
         visualizeInputGrid();
     });
+    
+    // Visualize output button
+    $('#visualize_output_btn').click(function() {
+        visualizeOutputGrid();
+    });
 });
 
 // WebSocket connection
@@ -305,9 +310,6 @@ function loadTask(taskId, versionIndex = 0) {
 
         // Update task navigation
         updateTaskNavigation();
-
-        // Add system message about the loaded task
-        addSystemMessage(`Loaded task ID: ${taskId}`);
         
         // Load chat history for this task
         displayChatHistory();
@@ -1014,26 +1016,20 @@ function visualizeInputGrid() {
 
 function displayOutputGrid(grid) {
     if (!grid || !Array.isArray(grid)) {
-        $('#grid_output_display').text('Invalid output grid');
+        $('#matrix_output_display').text('Invalid output grid');
         return;
     }
     
     // Create a Grid object from the output
     const outputGrid = convertSerializedGridToGridObject(grid);
     
+    // Store the output grid in a global variable for later visualization
+    window.currentOutputGrid = outputGrid;
+    
     // Clear previous output
-    $('#grid_output_display').empty();
+    $('#matrix_output_display').empty();
     
-    // Create output display container with two sections
-    const outputContainer = $('<div class="output_display_container"></div>');
-    const matrixContainer = $('<div class="matrix_container"></div>');
-    const visualContainer = $('<div class="visual_container"></div>');
-    
-    // Add headers
-    matrixContainer.append('<h4>Matrix Output</h4>');
-    visualContainer.append('<h4>Visual Output</h4>');
-    
-    // Add matrix representation
+    // Add matrix representation to the left side
     const matrixText = $('<pre class="matrix_text"></pre>');
     let matrixString = '';
     for (let i = 0; i < outputGrid.height; i++) {
@@ -1050,23 +1046,37 @@ function displayOutputGrid(grid) {
         }
     }
     matrixText.text(matrixString);
-    matrixContainer.append(matrixText);
+    $('#matrix_output_display').append(matrixText);
+    
+    // Hide the visual output display (it will be shown when the user clicks the visualize button)
+    $('#visual_output_display').hide();
+}
+
+// Function to visualize the output grid
+function visualizeOutputGrid() {
+    // Check if we have an output grid to visualize
+    if (!window.currentOutputGrid) {
+        $('#execution_status').text('No output grid to visualize');
+        return;
+    }
+    
+    // Clear previous visualization
+    $('#visual_output_display').empty();
     
     // Create visual grid container
-    const gridContainer = $('<div class="output_grid_container"></div>');
+    const gridContainer = $('<div class="grid_container"></div>');
     
     // Fill the grid with data
-    fillJqGridWithData(gridContainer, outputGrid);
+    fillJqGridWithData(gridContainer, window.currentOutputGrid);
     
     // Size the cells appropriately
-    const containerSize = 200; // Fixed size for output display
-    fitCellsToContainer(gridContainer, outputGrid.height, outputGrid.width, containerSize, containerSize);
+    const containerWidth = $('#visual_output_display').width() || 200;
+    const containerHeight = 200; // Fixed height
+    fitCellsToContainer(gridContainer, window.currentOutputGrid.height, window.currentOutputGrid.width, containerHeight, containerWidth);
     
     // Add visual grid to its container
-    visualContainer.append(gridContainer);
+    $('#visual_output_display').append(gridContainer);
     
-    // Add both containers to the output display
-    outputContainer.append(matrixContainer);
-    outputContainer.append(visualContainer);
-    $('#grid_output_display').append(outputContainer);
+    // Show the visual output display
+    $('#visual_output_display').show();
 }

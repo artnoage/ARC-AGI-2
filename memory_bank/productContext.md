@@ -11,5 +11,8 @@
     *   Allows users to control AI behavior via parameters like temperature.
     *   Enables testing Python code solutions directly within the interface, with guidance on common issues like the 'shape' attribute error.
     *   Ensures the AI assistant has full conversation context by including chat history in API calls.
+    *   Provides visual representation of the input grid via a "Visualize Input" button.
+    *   Displays both matrix and visual output side-by-side, with the visual output generated on demand via a "Visualize Output" button.
+    *   Organizes execution control buttons ("Visualize Input", "Visualize Output", "Execute Code") together for easy access.
 *   **Synthetic Data Generation Scripts:** Easy configuration and execution of data generation and verification processes. Detailed logging for troubleshooting. Clear, structured output for analysis, with a robust saving mechanism that correctly handles concurrent task execution. Users can now specify a list of task IDs to process using the `--task_ids` command-line argument.
 *   **Real Benchmarking:** Easy configuration and execution of benchmarks. Clear, structured output for analysis of model performance, with a robust saving mechanism that correctly handles concurrent task execution. Users can now specify a list of task IDs to process using the `--task_ids` command-line argument.

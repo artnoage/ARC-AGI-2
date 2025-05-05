@@ -211,6 +211,40 @@
     border-top: 1px solid #4a4a4a;
 }
 
+#execution_controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+    padding: 5px 0;
+    justify-content: flex-end; /* Align buttons to the right */
+}
+
+#execution_controls button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#visualize_input_btn {
+    background-color: #007acc;
+    color: white;
+}
+
+#visualize_input_btn:hover {
+    background-color: #005f9e;
+}
+
+#execute_code_btn {
+    background-color: #4caf50;
+    color: white;
+}
+
+#execute_code_btn:hover {
+    background-color: #3e8e41;
+}
+
 #api_form {
     display: flex;
     flex-direction: column;
@@ -450,24 +484,7 @@
     color: #d4d4d4;
 }
 
-#grid_input_controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-#visualize_input_btn {
-    padding: 5px 10px;
-    background-color: #007acc;
-    color: white;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-}
-
-#visualize_input_btn:hover {
-    background-color: #005f9e;
-}
+/* Removed grid_input_controls and visualize_input_btn styles as they're now in the API area */
 
 #grid_input_display {
     display: none; /* Hidden by default */
@@ -536,28 +553,82 @@
     font-style: italic;
 }
 
-#code_output_container {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 15px;
-    background-color: #1e1e1e;
-    border: 1px solid #555;
-    border-radius: 3px;
-    /* Removed max-height and overflow-y, as the parent #code_execution_area now handles scrolling */
-}
+/* Removed code_output_container styles as it's no longer used */
 
-#code_output_container label {
-    font-weight: bold;
-    color: #d4d4d4;
-}
-
-#grid_output_display {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+#grid_output_section {
+    display: flex; /* Make it a row */
+    flex-direction: row;
+    gap: 15px; /* Gap between left and right */
+    align-items: flex-start; /* Align items to the top */
     padding: 10px;
     min-height: 100px;
+}
+
+#grid_output_left {
+    flex: 1; /* Take up available space */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#grid_output_container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#grid_output_controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+#visualize_output_btn {
+    padding: 5px 10px;
+    background-color: #007acc;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+#visualize_output_btn:hover {
+    background-color: #005f9e;
+}
+
+#grid_output_right {
+    flex: 0 0 220px; /* Fixed width for the visual grid area, adjust as needed */
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#matrix_output_display, #visual_output_display {
+    background-color: #2a2a2a;
+    border-radius: 3px;
+    padding: 10px;
+    min-height: 100px;
+}
+
+#matrix_output_display h4, #visual_output_display h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #d4d4d4;
+    font-size: 14px;
+    text-align: center;
+}
+
+#visual_output_display {
+    display: none; /* Hidden by default */
+    min-height: 100px;
+    background-color: #2a2a2a;
+    border-radius: 3px;
+    padding: 10px;
+}
+
+#visual_output_display .grid_container {
+    margin-top: 10px;
 }
 
 .output_display_container {

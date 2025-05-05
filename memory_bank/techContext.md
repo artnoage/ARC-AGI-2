@@ -5,10 +5,10 @@
 *   **Core:**
     *   ARC Dataset (JSON format): The fundamental data source.
 *   **Phase 1 (Synthetic Data Generation Interface):**
-    *   HTML, CSS, JavaScript: For the client-side testing interface (`apps/testing_interface.html`) and discussion interface (`apps/discuss_interface.html`). The discussion interface now includes improved layout, automatic input grid population, and code block formatting.
+    *   HTML, CSS, JavaScript: For the client-side testing interface (`apps/testing_interface.html`) and discussion interface (`apps/discuss_interface.html`). The discussion interface now includes improved layout, automatic input grid population, code block formatting, implementation of input and output grid visualization, and JavaScript event handling for the visualize buttons.
     *   JSON: For storing task data, transformations, and reasoning traces.
     *   **localStorage API:** Used for client-side storage of chat memory and API settings (including temperature) in the discussion interface.
-    *   **jQuery:** Used in the discussion interface for DOM manipulation and AJAX calls (specifically for code execution).
+    *   **jQuery:** Used in the discussion interface for DOM manipulation and AJAX calls (specifically for code execution and visualization).
     *   **OpenRouter API:** Integrated into the discussion interface for AI responses, including control over parameters like temperature. Now includes sending full conversation history for better context.
 *   **Phase 2 (Synthetic Data Generation & Verification):**
 *   **Phase 2 (Synthetic Data Generation & Verification):**

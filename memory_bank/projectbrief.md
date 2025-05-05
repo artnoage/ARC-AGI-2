@@ -14,6 +14,10 @@ This project involves adapting the original ARC-AGI dataset and interface for ad
     *   Improved layout for better visibility of examples and chat area.
     *   Implemented automatic population of the input grid with the first test input.
     *   Added code block formatting to preserve indentation in AI messages.
+    *   Added visual representation for the input grid with a dedicated "Visualize Input" button.
+    *   Modified the output section to display matrix and visual output side-by-side, similar to the input section.
+    *   Added a "Visualize Output" button to control the display of the visual output.
+    *   Adjusted the placement and spacing of the execution control buttons.
 *   Integrate the discussion interface with a language model API (OpenRouter) for AI responses.
     *   Ensured full conversation history is sent to the AI model for better context.
 *   Add features to the discussion interface for controlling API parameters (e.g., temperature).
