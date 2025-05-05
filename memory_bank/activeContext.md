@@ -86,6 +86,7 @@ Recently, work has focused on addressing an issue with the "best of" functionali
     *   The data generation scripts (`generate_reasoning_data.py`, `generate_code_data.py`) load tasks *iteratively* from `data/dataset.json` by default.
     *   The generated results files embed the necessary `task_data` (including test cases) within each result entry.
     *   The real benchmarking scripts (`benchmark/run_code_benchmark.py` and `benchmark/run_direct_benchmark.py`) also load tasks iteratively from `data/dataset.json`.
+    *   All scripts that load tasks from `data/dataset.json` now support filtering by a list of task IDs provided via the `--task_ids` command-line argument.
 *   **Code Verification (Phase 2):**
     *   The `verify_generated_code.py` script reads a code data results file (e.g., `synthetic_data_generators/synthetic_data/code_data/code_data_results_*.json`) and uses the `task_data` embedded within it for verification. It no longer requires a separate `dataset.json` input.
 *   Configuration is now handled via a combination of `utilities/config.py` defaults and command-line argument overrides.

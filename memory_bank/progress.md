@@ -96,7 +96,7 @@
 *   **Phase 1 is complete.** The synthetic data generation interface is functional.
 *   **Phase 2 implementation ongoing.**
     *   The reasoning data generation script (`synthetic_data_generators/generate_reasoning_data.py`) has been implemented, tested, and executed successfully with `GEMINI_FLASH`. Results merged into `data/traces_store.json`.
-    *   The code data generation script (`synthetic_data_generators/generate_code_data.py`) has been implemented and executed successfully with `GEMINI_FLASH`. Results saved to `synthetic_data_generators/synthetic_data/code_data/code_data_results_20250504_165606.json`. **Confirmed that this script does not have "best of" functionality.**
+    *   The code data generation script (`synthetic_data_generators/generate_code_data.py`) has been implemented and executed successfully with `GEMINI_FLASH`. Results saved to `synthetic_data_generators/synthetic_data/code_data/code_data_results_20250504_165606.json`. **Confirmed that this script does not have "best of" functionality.** **Now supports filtering tasks by ID using the `--task_ids` command-line argument (accepts a JSON string).**
     *   The code verification script (`synthetic_data_generators/verify_generated_code.py`) has been implemented and refined to use embedded task data.
     *   Next step for Phase 2 is to run the code verification script.
 *   **Phase 3 has been enhanced** with the following improvements:
@@ -105,7 +105,7 @@
     *   Updated the data structure to always store responses as lists for consistency.
     *   Modified the merge_reasoning.py script to handle both list-based and string-based reasoning formats. **Confirmed compatibility with the new list-based reasoning format.**
     *   Standardized the JSON structure across all scripts for easier processing.
-    *   Both benchmark scripts are ready for testing with different models and the new best-of feature.
+    *   Both benchmark scripts are ready for testing with different models and the new best-of feature. **Now support filtering tasks by ID using the `--task_ids` command-line argument (accepts a JSON string).**
 
 ## Known issues
 

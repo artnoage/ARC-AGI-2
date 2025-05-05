@@ -14,10 +14,12 @@ This project involves adapting the original ARC-AGI dataset and interface for ad
 **Phase 2: Synthetic Data Generation & Verification**
 *   Develop tools (`synthetic_data_generators/`) for generating synthetic data, including reasoning traces and code solutions, from language models.
 *   Implement verification mechanisms for generated code.
+*   Added functionality to filter tasks by a list of specific task IDs using a command-line argument (`--task_ids`).
 
 **Phase 3: Real Benchmarking**
 *   Create a dedicated benchmarking suite (`benchmark/`) to evaluate language model performance directly on ARC tasks.
 *   This suite should handle both generating model responses and evaluating their correctness.
+*   Added functionality to filter tasks by a list of specific task IDs using a command-line argument (`--task_ids`).
 
 ## Scope
 

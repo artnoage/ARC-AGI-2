@@ -368,114 +368,10 @@ async def run_code_benchmark(args):
         # We will override the save paths in the saving functions for benchmark results.
         g_config = ARCBenchmarkConfig(
             model_identifier=args.model_identifier,
-            max_tasks=args.max_tasks,
-            dataset_directory=args.dataset_directory,
-            max_concurrent_tasks=args.max_concurrent_tasks
-            # output_directory is NOT set here, saving functions construct benchmark path
-        )
-        logging.info(f"Configuration loaded. Base output directory (from config, may be ignored by saving funcs): {g_config.output_directory}")
-        logging.info(f"Max concurrent tasks: {g_config.max_concurrent_tasks}")
-        logging.info(f"Using dataset file: {g_config.absolute_dataset_file}")
-        logging.info(f"Using model: {g_config.model_identifier}")
-        if g_config.max_tasks is not None:
-            logging.info(f"Maximum tasks to process: {g_config.max_tasks}")
-        else:
-             logging.info("Processing all found/specified tasks (no max_tasks limit).")
-    except ValueError as e:
-        logging.error(f"Configuration error: {e}")
-        return
-
-    # 2. Initialize Agent and Model
-    try:
-        model_enum_member = ModelOption[g_config.model_identifier]
-        g_model_value = model_enum_member.value
-
-        model = get_model(g_config, role="main")
-        agent = CodeGeneratingAgent(model=model)
-        logging.info(f"Initialized CodeGeneratingAgent with model: {g_config.model_identifier} ({g_model_value})")
-    except ValueError as e:
-        logging.error(f"Model initialization failed: {e}")
-        logging.error("Ensure OPENROUTER_API_KEY is set in .env for non-local models, or a local server is running for LOCAL models.")
-        return
-    except Exception as e:
-        logging.error(f"Unexpected error during model initialization: {e}")
-        return
-
-    # 3. Prepare Task List/Iterator and Semaphore
-    semaphore = asyncio.Semaphore(g_config.max_concurrent_tasks)
-    async_tasks = []
-    g_submitted_count = 0
-
-    # 4. Process Tasks Concurrently
-    g_start_time = time.time()
-    logging.info(f"Starting task processing with concurrency limit {g_config.max_concurrent_tasks}...")
-
-    task_source = g_config.absolute_dataset_file
-    logging.info(f"Processing tasks iteratively from dataset file: {task_source}")
-    try:
-        task_generator = load_tasks_from_dataset(
-            dataset_path=task_source,
-            task_ids=g_config.task_ids,
-            max_tasks=g_config.max_tasks
-        )
-        for i, task_item in enumerate(task_generator):
-            coro = process_single_task(task_item, g_config, agent, semaphore, i, total_tasks=None, best_of=args.best_of)
-            async_tasks.append(coro)
-            g_submitted_count += 1
-
-        logging.info(f"Submitted {g_submitted_count} tasks from dataset generator for processing.")
-        if g_submitted_count == 0:
-             logging.warning("No tasks were yielded from the dataset generator. Check filters or file content.")
-             results_raw = []
-        else:
-             results_raw = await asyncio.gather(*async_tasks, return_exceptions=True)
-
-    except Exception as e:
-        logging.error(f"Error while iterating through dataset {task_source}: {e}", exc_info=True)
-        return
-
-    # 5. Wait for all tasks to complete
-    for res in results_raw:
-        if isinstance(res, Exception):
-            logging.error(f"Task failed with exception during gather/scheduling: {res}", exc_info=res)
-        elif res is not None:
-             logging.warning(f"Unexpected non-None item in results_raw after gather: {type(res)} - {res}")
-
-    # 6. Log Final Summary (Saving handled by atexit/signal)
-    end_time = time.time()
-    total_time = end_time - g_start_time if g_start_time else 0
-
-    # Calculate final verification stats again for logging
-    total_verified = g_verification_passed_count + g_verification_failed_mismatch_count + g_verification_failed_execution_count + g_verification_failed_other_count
-    verification_rate = (g_verification_passed_count / total_verified * 100) if total_verified > 0 else 0
-
-    log_summary = (
-        f"Finished processing loop. Submitted: {g_submitted_count}, "
-        f"Gen Success: {g_generation_successful_count}, Gen Failed: {g_generation_failed_count}. "
-        f"Verify Passed: {g_verification_passed_count}, Verify Mismatch: {g_verification_failed_mismatch_count}, "
-        f"Verify Exec Error: {g_verification_failed_execution_count}, Verify Other Fail: {g_verification_failed_other_count}. "
-        f"Verification Pass Rate: {verification_rate:.2f}%. "
-        f"Total time: {total_time:.2f} seconds."
-    )
-    logging.info(log_summary)
-    logging.info("Benchmark run loop complete. Final results will be saved on exit.")
-
-
-# Modify the run_code_benchmark function signature to accept task_range
-async def run_code_benchmark(args, task_range=None):
-    """Runs the end-to-end ARC code generation and verification benchmark."""
-    global g_config, g_start_time, g_model_value, g_submitted_count
-    logging.info("Starting ARC Code Generation & Verification Benchmark...")
-
-    # 1. Load Configuration
-    try:
-        # Note: ARCBenchmarkConfig's output_directory default is now '../synthetic_data'
-        # We will override the save paths in the saving functions for benchmark results.
-        g_config = ARCBenchmarkConfig(
-            model_identifier=args.model_identifier,
             max_tasks=args.max_tasks, # Keep max_tasks in config for logging/metadata
             dataset_directory=args.dataset_directory,
-            max_concurrent_tasks=args.max_concurrent_tasks
+            max_concurrent_tasks=args.max_concurrent_tasks,
+            task_ids=args.task_ids # Pass the parsed task_ids list
             # output_directory is NOT set here, saving functions construct benchmark path
         )
         logging.info(f"Configuration loaded. Base output directory (from config, may be ignored by saving funcs): {g_config.output_directory}")
@@ -484,8 +380,10 @@ async def run_code_benchmark(args, task_range=None):
         logging.info(f"Using model: {g_config.model_identifier}")
         if g_config.max_tasks is not None:
             logging.info(f"Maximum tasks to process (from --max_tasks): {g_config.max_tasks}")
-        if task_range is not None:
-             logging.info(f"Processing tasks within index range (from --tasks): {task_range}")
+        if g_config.task_ids is not None:
+             logging.info(f"Processing specific task IDs: {g_config.task_ids}")
+        elif args.tasks is not None:
+             logging.info(f"Processing tasks within index range (from --tasks): {args.tasks}")
         elif g_config.max_tasks is None:
              logging.info("Processing all found/specified tasks (no max_tasks or tasks range limit).")
 
@@ -521,12 +419,12 @@ async def run_code_benchmark(args, task_range=None):
     task_source = g_config.absolute_dataset_file
     logging.info(f"Processing tasks iteratively from dataset file: {task_source}")
     try:
-        # Pass the task_range to the data loader
+        # Pass the task_range and task_ids to the data loader
         task_generator = load_tasks_from_dataset(
             dataset_path=task_source,
-            task_ids=g_config.task_ids, # task_ids is always None in this script currently
+            task_ids=g_config.task_ids, # Pass the new task_ids argument
             max_tasks=g_config.max_tasks, # Keep max_tasks for backward compatibility if needed, though --tasks overrides
-            task_range=task_range # Pass the new range
+            task_range=None # task_range is handled by the argument parsing logic before this
         )
         for i, task_item in enumerate(task_generator):
             # The index 'i' here is the index within the *yielded* tasks,
@@ -605,6 +503,12 @@ if __name__ == "__main__":
         default=None,
         help="Specify a range of tasks to process by index, e.g., [20:40] (inclusive start, exclusive end)"
     )
+    group.add_argument(
+        "--task_ids",
+        type=str,
+        default=None,
+        help="Specify a list of task IDs to process as a JSON string, e.g., '[\"2685904e\", \"239be575\"]'"
+    )
     parser.add_argument(
         "--dataset_directory",
         type=str,
@@ -649,10 +553,29 @@ if __name__ == "__main__":
             logging.error(f"Unexpected error parsing --tasks argument: {e}", exc_info=True)
             sys.exit(1)
 
+    # Parse --task_ids if provided
+    if args.task_ids:
+        try:
+            # Attempt to parse the string as a JSON list
+            args.task_ids = json.loads(args.task_ids)
+            if not isinstance(args.task_ids, list) or not all(isinstance(item, str) for item in args.task_ids):
+                raise ValueError("Input must be a JSON list of strings.")
+            logging.info(f"Parsed task IDs: {args.task_ids}")
+        except json.JSONDecodeError:
+            logging.error(f"Error parsing --task_ids argument: Invalid JSON string. Expected a list like '[\"id1\", \"id2\"]'.")
+            sys.exit(1)
+        except ValueError as e:
+            logging.error(f"Error parsing --task_ids argument: {e}")
+            sys.exit(1)
+        except Exception as e:
+            logging.error(f"Unexpected error parsing --task_ids argument: {e}", exc_info=True)
+            sys.exit(1)
+
+
     # Run the async function
     try:
         # Pass the parsed task_range to the benchmark function
-        asyncio.run(run_code_benchmark(args, task_range=task_range))
+        asyncio.run(run_code_benchmark(args))
     except KeyboardInterrupt:
         logging.info("Benchmark run interrupted by user.")
     except Exception as e:
