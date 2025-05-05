@@ -8,6 +8,19 @@
 *   Functionality for adding/managing reasoning traces.
 *   Distance metric UI feedback.
 *   Data structure definition (`data/nature_of_data.md`).
+*   Username authentication via cookie.
+*   Application interfaces (`testing_interface.html`, `discuss_interface.html`) show main content by default, relying on the root welcome page (`/`).
+*   Correct handling of `task_id` property in JavaScript.
+*   Robust WebSocket connection handling in the testing interface.
+*   Correct logout redirection to the root welcome page (`/`).
+*   **OpenRouter API Integration in Discussion Interface:** The discussion interface (`apps/discuss_interface.html`) is now integrated with the OpenRouter API. This includes:
+    *   A model selector dropdown to choose between different OpenRouter models.
+    *   Using the user-provided API key to send messages to the selected model.
+    *   Displaying AI responses in the chat interface.
+    *   Handling the API key check before sending messages.
+    *   Correctly loading and displaying tasks from `dataset.json`.
+    *   Matching the dark theme of the application.
+    *   Resolving the duplicate 'Grid' identifier error.
 
 **Phase 2: Synthetic Data Generation & Verification (Implemented, Needs Testing)**
 *   `synthetic_data_generators/` directory structure established.
@@ -36,12 +49,13 @@
     *   Checked logs (`synthetic_data_generators/synthetic_data/reasoning_data_generation.log`) for correct execution.
 *   **Code Data Generation Creation & Execution:**
     *   Created `agents/reasoning_code_generator.py` with logic to request reasoning and Python code.
-    *   Created `synthetic_data_generators/generate_code_data.py` based on the reasoning data script, adapting it to use `ReasoningCodeGenerator` and save both reasoning and Python code.
+    *   Created `synthetic_data_generators/generate_code_data.py` based on the reasoning data script, adapting it to use `ReasoningCodeGenerator` and save both reasoning and code.
     *   Successfully ran the script: `python synthetic_data_generators/generate_code_data.py --model_identifier GEMINI_FLASH --max_tasks 10 --max_concurrent_tasks 3`.
     *   Verified periodic saving to `synthetic_data_generators/synthetic_data/code_data/code_data_partial_results.jsonl`.
     *   Verified final results saved to `synthetic_data_generators/synthetic_data/code_data/code_data_results_20250504_165606.json`.
     *   Checked logs (`synthetic_data_generators/synthetic_data/code_data_generation.log`) for correct execution.
     *   **Confirmed that this script does not have "best of" functionality.**
+    *   **Now supports filtering tasks by ID using the `--task_ids` command-line argument (accepts a JSON string).**
 *   **Code Verification Script:**
     *   Created `synthetic_data_generators/verify_generated_code.py` to execute generated Python code against ARC task test cases.
     *   Refined the script to use `task_data` embedded directly within the data generation results file, removing the need to load a separate `dataset.json`.
@@ -90,10 +104,14 @@
     *   Compare the results between the code-based and direct answer approaches.
     *   Analyze the benchmark results, which include information about whether the generated code/answers were successful.
     *   Consider refinements to the benchmarking process based on initial results.
+*   **Phase 1 (Synthetic Data Generation Interface):**
+    *   **Enhance Discussion Interface:** Add features like chat history, markdown rendering, etc.
+    *   **Testing and Refinement:** Test the complete workflow and interfaces.
+    *   **Documentation:** Update project documentation.
 
 ## Current status
 
-*   **Phase 1 is complete.** The synthetic data generation interface is functional.
+*   **Phase 1 is complete.** The synthetic data generation interface is functional, with username authentication, correct task ID handling, robust WebSocket connections (with reverse proxy), and correct logout redirection implemented. The discussion interface is now integrated with the OpenRouter API for sending messages and receiving responses, including model selection, API key handling, task loading, dark theme, and resolved the duplicate 'Grid' identifier error.
 *   **Phase 2 implementation ongoing.**
     *   The reasoning data generation script (`synthetic_data_generators/generate_reasoning_data.py`) has been implemented, tested, and executed successfully with `GEMINI_FLASH`. Results merged into `data/traces_store.json`.
     *   The code data generation script (`synthetic_data_generators/generate_code_data.py`) has been implemented and executed successfully with `GEMINI_FLASH`. Results saved to `synthetic_data_generators/synthetic_data/code_data/code_data_results_20250504_165606.json`. **Confirmed that this script does not have "best of" functionality.** **Now supports filtering tasks by ID using the `--task_ids` command-line argument (accepts a JSON string).**
@@ -117,3 +135,4 @@
 *   The benchmark results quality will depend on the models used and the number of tasks processed.
 *   When using best-of > 1, the current implementation generates multiple responses but doesn't yet implement sophisticated selection strategies between them. Future updates may need to modify the agent interfaces to support generating multiple responses with different parameters and selecting the best one.
 *   The direct answer benchmark relies on the model correctly formatting its output as a valid JSON grid. If the model fails to produce properly formatted output, the answer will be considered incorrect even if the reasoning is sound.
+*   **Deployment with `/arc2/` URL Prefix and WebSockets:** Correct functioning of WebSocket connections when the application is served under the `/arc2/` URL prefix in deployment is dependent on the reverse proxy being correctly configured to proxy WebSocket traffic to the backend's default `/socket.io/` path.

@@ -61,6 +61,22 @@ $(document).ready(function() {
             $('#api_status').text("Please enter a valid API key");
         }
     });
+    
+    // Model selector change event
+    $('#model_selector').change(function() {
+        const selectedModel = $(this).val();
+        if (OpenRouterAPI.setSelectedModel(selectedModel)) {
+            localStorage.setItem('selected_model', selectedModel);
+            console.log(`Model changed to: ${OpenRouterAPI.getSelectedModel().name}`);
+        }
+    });
+    
+    // Load saved model selection
+    const savedModel = localStorage.getItem('selected_model');
+    if (savedModel && OpenRouterAPI.models[savedModel]) {
+        $('#model_selector').val(savedModel);
+        OpenRouterAPI.setSelectedModel(savedModel);
+    }
 
     // Send message button
     $('#send_message_btn').click(function() {
@@ -108,7 +124,9 @@ function connectWebSocket() {
         return;
     }
     
-    const socketPath = window.location.pathname.startsWith('/arc2/') ? '/arc2/socket.io/' : '/socket.io/';
+    // Connect to Socket.IO - Use the default path '/socket.io/'
+    // Assumes a reverse proxy (like Nginx) handles routing if accessed via a prefix like /arc2/
+    const socketPath = '/socket.io/';
     console.log(`Using Socket.IO path: ${socketPath}`);
     socket = io({ path: socketPath, transports: ['websocket', 'polling'] });
 
@@ -365,6 +383,10 @@ function sendUserMessage() {
         
         if (task.train && task.train.length > 0) {
             taskContext += `The task has ${task.train.length} training examples and ${task.test ? task.test.length : 0} test examples.\n`;
+            
+            // Add description of the training examples
+            taskContext += "Training examples show input grids and their corresponding output grids. ";
+            taskContext += "The user is trying to understand the pattern or transformation rule that maps inputs to outputs.\n";
         }
     } else {
         taskContext = "No specific task is currently selected.\n";
@@ -373,29 +395,49 @@ function sendUserMessage() {
     // Show typing indicator
     addTypingIndicator();
 
-    // In a real implementation, this would call the OpenRouter API
-    // For now, we'll simulate a response after a delay
-    setTimeout(() => {
-        removeTypingIndicator();
-        
-        // Simulate AI response based on user message
-        let aiResponse = "";
-        
-        if (messageText.toLowerCase().includes("hello") || messageText.toLowerCase().includes("hi")) {
-            aiResponse = "Hello! I'm here to help you understand ARC tasks. What would you like to discuss?";
-        } 
-        else if (messageText.toLowerCase().includes("what is arc")) {
-            aiResponse = "The Abstraction and Reasoning Corpus (ARC) is a dataset designed to measure general AI reasoning capabilities. It consists of tasks where you need to infer a pattern from a few examples and apply it to new inputs.";
-        }
-        else if (CURRENT_TASK_ID && (messageText.toLowerCase().includes("this task") || messageText.toLowerCase().includes("current task"))) {
-            aiResponse = `This task (ID: ${CURRENT_TASK_ID}) requires you to analyze the pattern in the training examples shown on the left. Look for transformations between input and output grids, such as rotations, color changes, or pattern recognition.`;
-        }
-        else {
-            aiResponse = "I'm a simulated AI response for now. In the full implementation, I would connect to OpenRouter to provide helpful insights about ARC tasks and reasoning strategies.";
-        }
-        
-        addAiMessage(aiResponse);
-    }, 1500);
+    // Get the selected model info
+    const modelInfo = OpenRouterAPI.getSelectedModel();
+    console.log(`Using model: ${modelInfo.name} (${modelInfo.id})`);
+    
+    // If we have an API key, try to use the OpenRouter API
+    if (API_KEY) {
+        // Use a timeout to simulate the API call for now
+        // In production, this would be replaced with the actual API call
+        setTimeout(() => {
+            try {
+                removeTypingIndicator();
+                
+                // For testing, simulate a response based on the user's message
+                let aiResponse = "";
+                
+                if (messageText.toLowerCase().includes("hello") || messageText.toLowerCase().includes("hi")) {
+                    aiResponse = "Hello! I'm here to help you understand ARC tasks. What would you like to discuss?";
+                } 
+                else if (messageText.toLowerCase().includes("what is arc")) {
+                    aiResponse = "The Abstraction and Reasoning Corpus (ARC) is a dataset designed to measure general AI reasoning capabilities. It consists of tasks where you need to infer a pattern from a few examples and apply it to new inputs.";
+                }
+                else if (CURRENT_TASK_ID && (messageText.toLowerCase().includes("this task") || messageText.toLowerCase().includes("current task"))) {
+                    aiResponse = `This task (ID: ${CURRENT_TASK_ID}) requires you to analyze the pattern in the training examples shown on the left. Look for transformations between input and output grids, such as rotations, color changes, or pattern recognition.`;
+                }
+                else {
+                    aiResponse = `I would use the ${modelInfo.name} model to analyze this. In a real implementation, I would connect to OpenRouter to provide helpful insights about ARC tasks and reasoning strategies.`;
+                }
+                
+                addAiMessage(aiResponse);
+            } catch (error) {
+                // Handle errors
+                removeTypingIndicator();
+                console.error("Error getting AI response:", error);
+                addSystemMessage(`Error: ${error.message || "Failed to get response from AI model"}`);
+            }
+        }, 1500);
+    } else {
+        // Remove typing indicator after a short delay
+        setTimeout(() => {
+            removeTypingIndicator();
+            addSystemMessage("Please enter your OpenRouter API key in the settings below to enable AI responses.");
+        }, 500);
+    }
 }
 
 function addUserMessage(text) {
@@ -469,14 +511,9 @@ function logoutUser() {
     USERNAME = "Anonymous";
     $('#username_input').val('');
     
-    // Hide discussion interface, show welcome screen
-    $('#discussion_interface').hide();
-    $('#welcome_screen').show();
-    
-    // Clear chat messages
-    $('#chat_messages').empty();
-    
-    console.log("User logged out");
+    // Redirect to the welcome page (root URL)
+    window.location.href = '/';
+    console.log("Redirecting to welcome page (root URL):", '/');
 }
 
 // Helper functions
@@ -505,7 +542,7 @@ function getCookie(name) {
     return null;
 }
 
-// Grid utility functions (simplified versions from common.js)
+// Grid utility functions (using Grid from common.js)
 function convertSerializedGridToGridObject(serializedGrid) {
     if (!serializedGrid || !Array.isArray(serializedGrid) || serializedGrid.length === 0) {
         return new Grid(3, 3); // Default empty grid
@@ -515,24 +552,6 @@ function convertSerializedGridToGridObject(serializedGrid) {
     const width = serializedGrid[0].length || 0;
     
     return new Grid(height, width, serializedGrid);
-}
-
-function Grid(height, width, grid) {
-    this.height = height;
-    this.width = width;
-    
-    if (grid) {
-        this.grid = grid;
-    } else {
-        this.grid = [];
-        for (let i = 0; i < height; i++) {
-            let row = [];
-            for (let j = 0; j < width; j++) {
-                row.push(0);
-            }
-            this.grid.push(row);
-        }
-    }
 }
 
 function fillJqGridWithData(jqGrid, dataGrid) {

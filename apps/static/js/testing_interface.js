@@ -242,16 +242,17 @@ function loadSingleTask(taskObject, taskName) {
 
     // Request traces from server for this task
     const taskId = taskObject.task_id;
-    if (socket && socket.connected && taskId) {
-        console.log(`Requesting traces for task ID: ${taskId}`);
-        socket.emit('request_traces', { task_id: taskId });
-    } else if (!taskId) {
-        console.warn("Cannot request traces: Task ID is missing.");
-        // Proceed without server-side traces for this task
-        displayTraces(); // Display local/empty traces
+    if (taskId) {
+        if (socket && socket.connected) {
+            console.log(`Requesting traces for task ID: ${taskId}`);
+            socket.emit('request_traces', { task_id: taskId });
+        } else {
+            console.warn("WebSocket not connected. Will display task without server-side traces.");
+            // Don't show error message to user, just proceed without traces
+            displayTraces(); // Display local/empty traces
+        }
     } else {
-        console.error("Cannot request traces: WebSocket not connected.");
-        errorMsg("Not connected to real-time server. Cannot load traces.");
+        console.warn("Cannot request traces: Task ID is missing.");
         // Proceed without server-side traces for this task
         displayTraces(); // Display local/empty traces
     }
@@ -420,16 +421,18 @@ function loadSingleTaskByIdAndVersion(taskId, versionIndex) {
         updateNavigationDisplays();
 
         // Request traces from server for this task ID (consistent across versions)
-        if (socket && socket.connected && taskId) {
-            console.log(`Requesting traces for task ID: ${taskId}`);
-            socket.emit('request_traces', { task_id: taskId });
-            $('#comment_display_area').text('Loading traces...'); // Placeholder
-        } else if (!taskId) {
-            console.warn("Cannot request traces: Task ID is missing.");
-            displayTraces(); // Display local/empty traces
+        if (taskId) {
+            if (socket && socket.connected) {
+                console.log(`Requesting traces for task ID: ${taskId}`);
+                socket.emit('request_traces', { task_id: taskId });
+                $('#comment_display_area').text('Loading traces...'); // Placeholder
+            } else {
+                console.warn("WebSocket not connected. Will display task without server-side traces.");
+                // Don't show error message to user, just proceed without traces
+                displayTraces(); // Display local/empty traces
+            }
         } else {
-            console.error("Cannot request traces: WebSocket not connected.");
-            errorMsg("Not connected to real-time server. Cannot load traces.");
+            console.warn("Cannot request traces: Task ID is missing.");
             displayTraces(); // Display local/empty traces
         }
 
@@ -1278,9 +1281,9 @@ function connectWebSocket() {
         console.log("WebSocket already connected.");
         return;
     }
-    // Connect to Socket.IO - Dynamically set the path based on the environment
-    // Use '/arc2/socket.io/' if served under /arc2/, otherwise default '/socket.io/'
-    const socketPath = window.location.pathname.startsWith('/arc2/') ? '/arc2/socket.io/' : '/socket.io/';
+    // Connect to Socket.IO - Use the default path '/socket.io/'
+    // Assumes a reverse proxy (like Nginx) handles routing if accessed via a prefix like /arc2/
+    const socketPath = '/socket.io/';
     console.log(`Using Socket.IO path: ${socketPath}`); // Log the determined path
     socket = io({ path: socketPath, transports: ['websocket', 'polling'] });
 
@@ -1662,12 +1665,9 @@ function logoutUser() {
     $('#username_input').val('');
     console.log("Username variable and input field cleared.");
 
-    // 5. Hide main content, show welcome screen
-    $('#demonstration_examples_view').hide();
-    $('#evaluation_view').hide();
-    $('#comment_section').hide();
-    $('#welcome_screen').show();
-    console.log("UI reset to welcome screen.");
+    // 5. Redirect to the welcome page (root URL)
+    window.location.href = '/';
+    console.log("Redirecting to welcome page (root URL):", '/');
 
     // 6. Optional: Disconnect WebSocket? Decide if needed.
     // if (socket && socket.connected) {

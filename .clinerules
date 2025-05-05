@@ -8,6 +8,7 @@ This file captures key patterns, preferences, and insights discovered during the
 
 ## Important Implementation Patterns
 
+*   **Task ID Property:** The task identifier property used in `apps/static/dataset.json` and referenced in the JavaScript files is `task_id`, not `id`. Ensure this property name is used consistently when accessing task identifiers.
 *   [Describe recurring code structures or architectural patterns specific to this project, e.g., "State management follows the Redux pattern with specific middleware," "API error handling uses a centralized middleware."]
 
 ## Tooling & Workflow Notes
@@ -15,6 +16,11 @@ This file captures key patterns, preferences, and insights discovered during the
 *   **Benchmark Testing:** Always use the `GEMINI_FLASH` model identifier when running benchmark tests, unless explicitly requested otherwise. (e.g., `python benchmark/run_benchmark.py --model_identifier GEMINI_FLASH ...`)
 *   **JSON File Handling:** Never open JSON files directly. Instead, read the Python files that produce them to understand their structure and content. This ensures proper context and understanding of the data generation process.
 *   [Record project-specific tool usage or workflow steps, e.g., "Use `npm run lint:fix` before committing," "Deployment requires manual approval step X."]
+
+## Deployment Notes
+
+*   **`/arc2/` URL Prefix:** The application is intended to be served under the `/arc2/` URL prefix in deployment, likely using a reverse proxy (like Nginx or Apache).
+*   **WebSocket Proxying:** When served under the `/arc2/` prefix, the reverse proxy must be configured to specifically handle and proxy WebSocket connections for `/arc2/socket.io/` to the backend Flask-SocketIO server's default `/socket.io/` endpoint. The client-side JavaScript is configured to connect to the default `/socket.io/` path, relying on the reverse proxy for correct routing.
 
 ## Known Challenges & Workarounds
 

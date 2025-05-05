@@ -9,10 +9,12 @@
         <!-- Add Socket.IO Client Library -->
         <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
         <script src="/arc2/static/js/common.js"></script>
+        <script src="/arc2/static/js/openrouter_api.js"></script>
         <script src="/arc2/static/js/discuss_interface.js"></script>
 
         <link rel="stylesheet" type="text/css" href="/arc2/static/css/common.css">
         <link rel="stylesheet" type="text/css" href="/arc2/static/css/discuss_interface.css">
+        <link rel="stylesheet" type="text/css" href="/arc2/static/css/testing_interface.css">
 
         <link href="https://fonts.googleapis.com/css?family=Open+Sans&display=swap" rel="stylesheet">
     </head>
@@ -58,65 +60,25 @@
                 <div id="api_settings">
                     <div class="section_header">API Settings</div>
                     <div id="api_form">
-                        <label for="openrouter_key">OpenRouter API Key:</label>
-                        <input type="password" id="openrouter_key" placeholder="Enter your OpenRouter API key">
-                        <button id="save_key_btn">Save Key</button>
-                        <span id="api_status"></span>
+                        <div class="api_row">
+                            <label for="openrouter_key">OpenRouter API Key:</label>
+                            <input type="password" id="openrouter_key" placeholder="Enter your OpenRouter API key">
+                            <button id="save_key_btn">Save Key</button>
+                            <span id="api_status"></span>
+                        </div>
+                        <div class="api_row">
+                            <label for="model_selector">Select Model:</label>
+                            <select id="model_selector">
+                                <option value="claude">Claude 3.7 Sonnet</option>
+                                <option value="gemini-pro">Gemini 2.5 Pro</option>
+                                <option value="gemini-flash">Gemini 2.5 Flash</option>
+                                <option value="gpt">GPT-4o Mini</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
             <!-- End Discussion Interface -->
         </div>
     </body>
-<head>
-    <meta charset="utf-8">
-    <title>Discuss Tasks with AI</title>
-    <style>
-        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; }
-        .task-section { flex: 1; padding: 20px; border-right: 1px solid #ccc; }
-        .discussion-section { flex: 1; padding: 20px; display: flex; flex-direction: column; }
-        .chat-box { flex: 1; border: 1px solid #ccc; margin-bottom: 10px; padding: 10px; overflow-y: auto; }
-        .input-area { display: flex; flex-direction: column; }
-        .input-area textarea { margin-bottom: 10px; padding: 10px; }
-        .input-area input[type="text"] { padding: 10px; margin-bottom: 10px; }
-        .input-area button { padding: 10px; }
-    </style>
-</head>
-<body>
-    <div class="task-section">
-        <h2>Task Demonstration</h2>
-        <!-- Placeholder for task visualization -->
-        <div id="task-visualization"></div>
-    </div>
-    <div class="discussion-section">
-        <h2>Discussion with AI</h2>
-        <div class="chat-box" id="chat-box">
-            <!-- Chat messages will appear here -->
-        </div>
-        <div class="input-area">
-            <textarea id="user-input" placeholder="Type your message..."></textarea>
-            <input type="text" id="openrouter-key" placeholder="Enter your OpenRouter API Key">
-            <button onclick="sendMessage()">Send</button>
-        </div>
-    </div>
-
-    <script>
-        // Basic JavaScript for sending messages (will be expanded later)
-        function sendMessage() {
-            const userInput = document.getElementById('user-input');
-            const chatBox = document.getElementById('chat-box');
-            const message = userInput.value;
-
-            if (message.trim() !== '') {
-                const messageElement = document.createElement('p');
-                messageElement.textContent = 'You: ' + message;
-                chatBox.appendChild(messageElement);
-                userInput.value = '';
-                chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to the latest message
-
-                // TODO: Add logic here to send message to AI and receive response
-            }
-        }
-    </script>
-</body>
 </html>
