@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Discuss Tasks with AI</title>
+    <style>
+        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; }
+        .task-section { flex: 1; padding: 20px; border-right: 1px solid #ccc; }
+        .discussion-section { flex: 1; padding: 20px; display: flex; flex-direction: column; }
+        .chat-box { flex: 1; border: 1px solid #ccc; margin-bottom: 10px; padding: 10px; overflow-y: auto; }
+        .input-area { display: flex; flex-direction: column; }
+        .input-area textarea { margin-bottom: 10px; padding: 10px; }
+        .input-area input[type="text"] { padding: 10px; margin-bottom: 10px; }
+        .input-area button { padding: 10px; }
+    </style>
+</head>
+<body>
+    <div class="task-section">
+        <h2>Task Demonstration</h2>
+        <!-- Placeholder for task visualization -->
+        <div id="task-visualization"></div>
+    </div>
+    <div class="discussion-section">
+        <h2>Discussion with AI</h2>
+        <div class="chat-box" id="chat-box">
+            <!-- Chat messages will appear here -->
+        </div>
+        <div class="input-area">
+            <textarea id="user-input" placeholder="Type your message..."></textarea>
+            <input type="text" id="openrouter-key" placeholder="Enter your OpenRouter API Key">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        // Basic JavaScript for sending messages (will be expanded later)
+        function sendMessage() {
+            const userInput = document.getElementById('user-input');
+            const chatBox = document.getElementById('chat-box');
+            const message = userInput.value;
+
+            if (message.trim() !== '') {
+                const messageElement = document.createElement('p');
+                messageElement.textContent = 'You: ' + message;
+                chatBox.appendChild(messageElement);
+                userInput.value = '';
+                chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to the latest message
+
+                // TODO: Add logic here to send message to AI and receive response
+            }
+        }
+    </script>
+</body>
+</html>
