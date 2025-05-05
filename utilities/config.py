@@ -9,11 +9,13 @@ class ModelOption(Enum):
     CLAUDE = "anthropic/claude-3.7-sonnet"
     GEMINI_PRO = "google/gemini-2.5-pro-preview-03-25"
     GEMINI_FLASH="google/gemini-2.5-flash-preview"
+    GPT="openai/gpt-4o-mini"
     LOCAL_0= "/Home/stat/laschos/math/AIMO2_initial/models/7BSR2" # Example path, adjust as needed
     LOCAL_1= "/Home/stat/laschos/math/AIMO2_initial/models/14BR1" # Example path, adjust as needed
     LOCAL_2= "/Home/stat/laschos/math/AIMO2_initial/models/14BR2" # Example path, adjust as needed
     # Add other models from the old config if needed
     CODER="qwen/qwen-2.5-coder-32b-instruct"
+    PHI="microsoft/phi-4-reasoning-plus"    
     QWEN="qwen/qwen3-235b-a22b"
 
 

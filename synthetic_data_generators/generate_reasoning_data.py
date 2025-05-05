@@ -51,6 +51,7 @@ g_skipped_count = 0
 g_submitted_count = 0
 g_is_saving = False # Lock to prevent concurrent saves
 g_last_saved_results_len = 0 # Track length of g_results at last periodic save
+g_timestamp = time.strftime("%Y%m%d_%H%M%S")  # Generate timestamp once at the beginning
 SAVE_INTERVAL = 10 # Save results every N successful tasks
 # --- End Global State ---
 
@@ -82,7 +83,7 @@ def save_results_helper(output_data, output_path):
 
 def save_periodic_results():
     """Appends new results to the results file in JSON Lines format."""
-    global g_is_saving, g_last_saved_results_len # Need to modify global lock and index tracker
+    global g_is_saving, g_last_saved_results_len, g_timestamp # Need to modify global lock and index tracker
 
     if g_config is None or len(g_results) <= g_last_saved_results_len:
         logging.debug("Periodic save check: No new results to append.")
@@ -100,7 +101,7 @@ def save_periodic_results():
     try:
         # Define the subdirectory and filename
         subdirectory = "reasoning_data" # Subdirectory for reasoning results
-        results_filename = "reasoning_data_results.jsonl" # Use .jsonl extension
+        results_filename = f"reasoning_data_results_{g_timestamp}.jsonl"
         # Construct the full path including the subdirectory within the main output directory
         results_path = os.path.join(g_config.output_directory, subdirectory, results_filename)
 
@@ -125,6 +126,8 @@ def save_periodic_results():
 
 def save_final_results(interrupted=False):
     """Appends a metadata entry to the results file."""
+    global g_timestamp
+    
     if g_config is None:
         logging.info("No config loaded, skipping final metadata save.")
         return
@@ -154,7 +157,7 @@ def save_final_results(interrupted=False):
 
     # Define the subdirectory and filename
     subdirectory = "reasoning_data" # Subdirectory for reasoning results
-    results_filename = "reasoning_data_results.jsonl" # Use .jsonl extension
+    results_filename = f"reasoning_data_results_{g_timestamp}.jsonl"
     # Construct the full path including the subdirectory within the main output directory
     results_path = os.path.join(g_config.output_directory, subdirectory, results_filename)
     

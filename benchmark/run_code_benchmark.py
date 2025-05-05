@@ -55,6 +55,7 @@ g_verification_failed_execution_count = 0
 g_verification_failed_other_count = 0 # For data issues or unexpected verify reasons
 g_is_saving = False
 g_last_saved_results_len = 0
+g_timestamp = time.strftime("%Y%m%d_%H%M%S")  # Generate timestamp once at the beginning
 SAVE_INTERVAL = 5 # Save results more frequently during benchmarks? Or keep at 10? Let's try 5.
 # --- End Global State ---
 
@@ -85,7 +86,7 @@ def save_results_helper(output_data, output_path):
 
 def save_periodic_results():
     """Appends new results to the results file in JSON Lines format."""
-    global g_is_saving, g_last_saved_results_len
+    global g_is_saving, g_last_saved_results_len, g_timestamp
 
     if g_config is None or len(g_results) <= g_last_saved_results_len:
         logging.debug("Periodic save check: No new results to append.")
@@ -104,7 +105,7 @@ def save_periodic_results():
         # Define the subdirectory and filename for benchmark results
         base_output_dir = os.path.join(project_root, "benchmark", "benchmark_results") # Base dir for all benchmark outputs
         subdirectory = "code_benchmark" # Specific subdir for this benchmark
-        results_filename = "code_benchmark_results.jsonl"
+        results_filename = f"code_benchmark_results_{g_timestamp}.jsonl"
         # Construct the full path
         results_path = os.path.join(base_output_dir, subdirectory, results_filename)
 
@@ -128,6 +129,8 @@ def save_periodic_results():
 
 def save_final_results(interrupted=False):
     """Appends a metadata entry to the results file."""
+    global g_timestamp
+    
     if g_config is None:
         logging.info("No config loaded, skipping final metadata save.")
         return
@@ -166,7 +169,7 @@ def save_final_results(interrupted=False):
     # Define the subdirectory and filename for benchmark results
     base_output_dir = os.path.join(project_root, "benchmark", "benchmark_results")
     subdirectory = "code_benchmark"
-    results_filename = "code_benchmark_results.jsonl"
+    results_filename = f"code_benchmark_results_{g_timestamp}.jsonl"
     # Construct the full path
     results_path = os.path.join(base_output_dir, subdirectory, results_filename)
     
@@ -198,6 +201,7 @@ def signal_handler(sig, frame):
 async def process_single_task(item, config, agent, semaphore, index, total_tasks=None, best_of=1):
     """
     Processes a single task: generates code, executes, verifies, and updates global results.
+    Handles multiple generation attempts if best_of > 1.
     """
     global g_results, g_generation_successful_count, g_generation_failed_count, \
            g_verification_passed_count, g_verification_failed_mismatch_count, \
@@ -213,81 +217,105 @@ async def process_single_task(item, config, agent, semaphore, index, total_tasks
             log_prefix += f" (Dataset: {task_id})" # Add task_id to log prefix
             logging.debug(f"{log_prefix}: Acquired semaphore, processing...")
 
-            # --- 1. Code Generation ---
-            generation_start_time = time.time()
-            prompt_messages, reasoning, python_code = await agent.get_reasoning_and_code(task_data)
-            generation_end_time = time.time()
-            generation_time = generation_end_time - generation_start_time
-            logging.debug(f"{log_prefix}: Code generation took {generation_time:.2f}s")
-
             # --- Prepare Base Result Entry ---
             result_entry = {
                 "task_id": task_id,
+                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"), # Add timestamp here
                 "task_data": { # Store complete task data
                     "train": task_data.get("train", []),
                     "test": task_data.get("test", [])
                 },
-                "best_of": best_of
+                "best_of": best_of,
+                "prompt_messages": [],
+                "reasoning": [],
+                "python_code": [],
+                "generation_time_seconds": [],
+                "verification_success": [],
+                "verification_reason": [],
+                "verification_time_seconds": []
             }
-            
-            # Always store responses as lists, regardless of best_of value
-            result_entry["prompt_messages"] = [prompt_messages]
-            result_entry["reasoning"] = [reasoning if reasoning is not None else "ERROR: Failed to get reasoning."]
-            result_entry["python_code"] = [python_code if python_code is not None else "ERROR: Failed to get code."]
-            result_entry["generation_time_seconds"] = [round(generation_time, 2)]
-            result_entry["verification_success"] = [None]  # Placeholder
-            result_entry["verification_reason"] = [None]  # Placeholder
-            result_entry["verification_time_seconds"] = [None]  # Placeholder
-            result_entry["total_processing_time_seconds"] = None  # Placeholder
 
-            # --- 2. Code Verification ---
-            if python_code is not None and isinstance(python_code, str) and python_code.strip():
-                g_generation_successful_count += 1
-                logging.info(f"{log_prefix}: Code generation successful.")
+            # --- 1. Code Generation and Verification (Loop for best_of) ---
+            for attempt in range(best_of):
+                attempt_log_prefix = f"{log_prefix} (Attempt {attempt+1}/{best_of})"
+                logging.debug(f"{attempt_log_prefix}: Starting generation and verification...")
 
-                verification_start_time = time.time()
-                # Use the imported verification function
-                verify_success, verify_reason = verify_code_with_task_data(python_code, task_data, task_id)
-                verification_end_time = time.time()
-                verification_time = verification_end_time - verification_start_time
-                logging.debug(f"{log_prefix}: Code verification took {verification_time:.2f}s")
+                generation_start_time = time.time()
+                try:
+                    prompt_messages, reasoning, python_code = await agent.get_reasoning_and_code(task_data)
+                    generation_end_time = time.time()
+                    generation_time = generation_end_time - generation_start_time
+                    logging.debug(f"{attempt_log_prefix}: Code generation took {generation_time:.2f}s")
 
-                result_entry["verification_success"][0] = verify_success
-                result_entry["verification_reason"][0] = verify_reason
-                result_entry["verification_time_seconds"][0] = round(verification_time, 2)
+                    result_entry["prompt_messages"].append(prompt_messages)
+                    result_entry["reasoning"].append(reasoning if reasoning is not None else "ERROR: Failed to get reasoning.")
+                    result_entry["python_code"].append(python_code if python_code is not None else "ERROR: Failed to get code.")
+                    result_entry["generation_time_seconds"].append(round(generation_time, 2))
 
-                # Update verification counters
-                if verify_success:
-                    g_verification_passed_count += 1
-                    logging.info(f"{log_prefix}: Verification PASSED.")
-                else:
-                    logging.warning(f"{log_prefix}: Verification FAILED. Reason: {verify_reason}")
-                    if "Execution Error" in verify_reason:
-                        g_verification_failed_execution_count += 1
-                    elif "Output Mismatch" in verify_reason:
-                        g_verification_failed_mismatch_count += 1
-                    else: # Includes data errors, missing tests etc.
-                        g_verification_failed_other_count += 1
-            else:
-                # Code generation failed
-                g_generation_failed_count += 1
-                logging.warning(f"{log_prefix}: Code generation FAILED.")
-                result_entry["verification_success"][0] = False
-                result_entry["verification_reason"][0] = "Skipped - Code generation failed"
+                    if python_code is not None and isinstance(python_code, str) and python_code.strip():
+                        g_generation_successful_count += 1
+                        logging.info(f"{attempt_log_prefix}: Code generation successful.")
 
+                        verification_start_time = time.time()
+                        verify_success, verify_reason = verify_code_with_task_data(python_code, task_data, task_id)
+                        verification_end_time = time.time()
+                        verification_time = verification_end_time - verification_start_time
+                        logging.debug(f"{attempt_log_prefix}: Code verification took {verification_time:.2f}s")
 
-            # --- Finalize Result ---
+                        result_entry["verification_success"].append(verify_success)
+                        result_entry["verification_reason"].append(verify_reason)
+                        result_entry["verification_time_seconds"].append(round(verification_time, 2))
+
+                        # Update verification counters (only count the first successful verification for overall stats?)
+                        # For now, let's count each attempt's verification result for detailed logging,
+                        # but overall stats will need aggregation logic later.
+                        if verify_success:
+                            g_verification_passed_count += 1
+                            logging.info(f"{attempt_log_prefix}: Verification PASSED.")
+                        else:
+                            logging.warning(f"{attempt_log_prefix}: Verification FAILED. Reason: {verify_reason}")
+                            if "Execution Error" in verify_reason:
+                                g_verification_failed_execution_count += 1
+                            elif "Output Mismatch" in verify_reason:
+                                g_verification_failed_mismatch_count += 1
+                            else: # Includes data errors, missing tests etc.
+                                g_verification_failed_other_count += 1
+                    else:
+                        # Code generation failed for this attempt
+                        g_generation_failed_count += 1
+                        logging.warning(f"{attempt_log_prefix}: Code generation FAILED.")
+                        result_entry["verification_success"].append(False)
+                        result_entry["verification_reason"].append("Skipped - Code generation failed")
+                        result_entry["verification_time_seconds"].append(None)
+
+                except Exception as e:
+                    # Catch errors during generation or verification for this attempt
+                    error_message = f"ERROR: Exception during attempt {attempt+1}: {e}"
+                    logging.error(f"{attempt_log_prefix}: {error_message}\n{traceback.format_exc()}")
+                    result_entry["prompt_messages"].append(None)
+                    result_entry["reasoning"].append(error_message)
+                    result_entry["python_code"].append(None)
+                    result_entry["generation_time_seconds"].append(None)
+                    result_entry["verification_success"].append(False)
+                    result_entry["verification_reason"].append(error_message)
+                    result_entry["verification_time_seconds"].append(None)
+                    g_generation_failed_count += 1 # Count as generation failure for this attempt
+
+            # --- Finalize Result for the Task ---
             task_end_time = time.time()
             total_processing_time = task_end_time - task_start_time
             result_entry["total_processing_time_seconds"] = round(total_processing_time, 2)
             g_results.append(result_entry)
 
-            # Check for periodic save (based on generation success for now)
-            if g_generation_successful_count % SAVE_INTERVAL == 0 and g_generation_successful_count > 0:
+            # Check for periodic save (based on task completion, not just generation success)
+            # This might need adjustment if we want to save after *each* attempt within a task
+            # For now, save after a full task (all best_of attempts) is processed.
+            # We can use the length of g_results as a simple trigger.
+            if len(g_results) % SAVE_INTERVAL == 0 and len(g_results) > g_last_saved_results_len:
                  save_periodic_results()
 
         except Exception as e:
-            # Catch broader errors during the loop
+            # Catch broader errors during the task processing loop itself (e.g., loading task data)
             error_task_id = task_id if task_id else f"task_{index+1}"
             log_prefix_err = f"Task {index+1}" + (f"/{total_tasks}" if total_tasks else "") + f" ({error_task_id})"
             logging.error(f"{log_prefix_err}: Unexpected error processing task: {e}\n{traceback.format_exc()}")
@@ -300,7 +328,7 @@ async def process_single_task(item, config, agent, semaphore, index, total_tasks
                     "test": task_data.get("test", []) if 'task_data' in locals() else []
                 },
                 "best_of": best_of,
-                "prompt_messages": [None],
+                "prompt_messages": [None], # Still use lists for consistency
                 "reasoning": [error_message],
                 "python_code": [None],
                 "generation_time_seconds": [None],
@@ -310,7 +338,8 @@ async def process_single_task(item, config, agent, semaphore, index, total_tasks
                 "total_processing_time_seconds": round(time.time() - task_start_time, 2)
             })
             # Decide how to count this - generation failed? verification failed?
-            g_generation_failed_count += 1 # Count as generation failure due to loop error
+            # This error prevents any generation attempts, so count as a generation failure for the task
+            g_generation_failed_count += 1
 
 
 async def run_code_benchmark(args):

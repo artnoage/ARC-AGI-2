@@ -10,7 +10,7 @@
 *   **Phase 2 (Synthetic Data Generation & Verification):**
     *   Python: Primary language for the synthetic data generation scripts and auxiliary utilities.
     *   `asyncio`: For asynchronous operations, especially model API calls.
-    *   Standard Libraries: `json`, `os`, `argparse`, `logging`, `time`, `signal`, `atexit`.
+    *   Standard Libraries: `json`, `os`, `argparse`, `logging`, `time` (used for timestamp generation, adjusted for concurrency), `signal`, `atexit`.
     *   External Libraries: `aiohttp` (used in `utilities/model_utils.py` for async API calls), `python-dotenv` (for loading `.env`).
     *   Language Models: Interaction with various models via local servers (e.g., Ollama) or APIs (e.g., OpenRouter).
         *   **Key Python Components:**

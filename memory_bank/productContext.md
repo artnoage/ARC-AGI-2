@@ -14,10 +14,10 @@ This project adapts the ARC-AGI framework for two primary purposes:
 ## How it should work
 
 *   **Synthetic Data Generation:** A web-based interface (`apps/testing_interface.html`) allows users to solve ARC tasks, apply transformations, and add step-by-step reasoning traces. This generated data is stored with metadata. Additionally, Python scripts (`synthetic_data_generators/`) generate synthetic reasoning and code data from models and provide verification.
-*   **Real Benchmarking:** A dedicated benchmarking script within the `benchmark/` directory will handle loading ARC tasks, prompting models for solutions, executing generated code (if applicable), and evaluating the results. This script will be configurable and save detailed output for analysis.
+*   **Real Benchmarking:** A dedicated benchmarking script within the `benchmark/` directory will handle loading ARC tasks, prompting models for solutions, executing generated code (if applicable), and evaluating the results. This script will be configurable and save detailed output for analysis. The saving mechanism has been made robust to ensure all results are captured even during concurrent execution.
 
 ## User experience goals
 
 *   **Synthetic Data Generation Interface:** An intuitive interface for task interaction, transformation, and reasoning annotation. Clear feedback mechanisms (like the distance metric).
-*   **Synthetic Data Generation Scripts:** Easy configuration and execution of data generation and verification processes. Detailed logging for troubleshooting. Clear, structured output for analysis.
-*   **Real Benchmarking:** Easy configuration and execution of benchmarks. Clear, structured output for analysis of model performance.
+*   **Synthetic Data Generation Scripts:** Easy configuration and execution of data generation and verification processes. Detailed logging for troubleshooting. Clear, structured output for analysis, with a robust saving mechanism that correctly handles concurrent task execution.
+*   **Real Benchmarking:** Easy configuration and execution of benchmarks. Clear, structured output for analysis of model performance, with a robust saving mechanism that correctly handles concurrent task execution.

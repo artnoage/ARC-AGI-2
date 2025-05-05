@@ -88,7 +88,7 @@ The suite works as follows:
     *   Prompts the model to explain its reasoning process for deriving outputs from inputs.
     *   Saves the generated reasoning (along with metadata and prompts) to timestamped JSON files in `synthetic_data_generators/synthetic_data/reasoning_data/`.
     *   Supports concurrency, periodic saving, and graceful exit.
-    *   Appends new results to a single JSONL file for easier processing.
+    *   Appends new results to a single JSONL file for easier processing. The saving mechanism has been updated to ensure all results are captured correctly even when running concurrent tasks.
 3.  **Code Data Generation (`synthetic_data_generators/generate_code_data.py`):**
     *   Uses `agents/reasoning_code_generator.py` to interact with a configured language model.
     *   Presents 'train' examples to the model.
@@ -156,7 +156,7 @@ The benchmarking suite works as follows:
 
 Key features include:
 * Concurrency control using `asyncio.Semaphore`
-* Periodic and final result saving
+* Periodic and final result saving. The saving mechanism has been updated to ensure all results are captured correctly even when running concurrent tasks.
 * Detailed logging
 * Signal handling for graceful shutdown
 * Consistent data structure with all responses stored as lists

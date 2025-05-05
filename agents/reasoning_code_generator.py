@@ -20,7 +20,7 @@ You are an expert programmer participating in a visual IQ test (ARC - Abstractio
 
 Your task is twofold:
 1.  **Explain the Reasoning:** Analyze the examples and clearly explain the underlying logic, pattern, or transformation rule used to generate the output grid from the input grid.
-2.  **Provide Python Code:** Write a Python function named `solve` that takes a single argument `input_grid` (represented as a list of lists of integers) and returns the corresponding `output_grid` (as a list of lists of integers) based on the identified pattern. The function should be self-contained and rely only on standard Python libraries.
+2.  **Provide Python Code:** Write a Python function named `solve_task` that takes a single argument `input_grid` (represented as a list of lists of integers) and returns the corresponding `output_grid` (as a list of lists of integers) based on the identified pattern. The function should be self-contained and rely only on standard Python libraries.
 
 **Output Format:**
 Provide your reasoning first, followed by the Python code enclosed in a markdown code block like this:
@@ -80,7 +80,7 @@ The grids use numbers 0-9 to represent colors. If you refer to colors in your re
                  user_content += f"Input: [Error: {e}]\n"
                  user_content += f"Output: [Error: {e}]\n\n"
 
-        user_content += "Based on these examples, provide the reasoning and the Python `solve` function as requested."
+        user_content += "Based on these examples, provide the reasoning and the Python `solve_task` function as requested."
         messages.append({"role": "user", "content": user_content})
         logging.debug(f"Added user content (length: {len(user_content)})")
 
