@@ -358,12 +358,190 @@ async def generate_code_data(args): # Renamed function to remove 'benchmark'
     logging.info("Code data generation loop complete. Final results will be saved on exit.") # Updated log message
 
 
+# Modify the generate_code_data function signature to accept task_range
+async def generate_code_data(args, task_range=None): # Renamed function to remove 'benchmark'
+    """Generates ARC code data with concurrency control.""" # Updated docstring
+    global g_config, g_start_time, g_model_value, g_submitted_count
+    logging.info("Starting ARC Code Data Generation...") # Updated log message
+
+    # 1. Load Configuration (updated for dataset.json only)
+    try:
+        g_config = ARCBenchmarkConfig(
+            model_identifier=args.model_identifier,
+            max_tasks=args.max_tasks, # Keep max_tasks in config for logging/metadata
+            # use_dataset_json is removed
+            dataset_directory=args.dataset_directory, # Use the renamed argument
+            max_concurrent_tasks=args.max_concurrent_tasks
+        )
+        logging.info(f"Configuration loaded. Output directory: {g_config.output_directory}")
+        logging.info(f"Max concurrent tasks: {g_config.max_concurrent_tasks}")
+        # Always using dataset.json now
+        logging.info(f"Using dataset file: {g_config.absolute_dataset_file}")
+        logging.info(f"Using model: {g_config.model_identifier}")
+        if g_config.max_tasks is not None:
+            logging.info(f"Maximum tasks to process (from --max_tasks): {g_config.max_tasks}")
+        if task_range is not None:
+             logging.info(f"Processing tasks within index range (from --tasks): {task_range}")
+        elif g_config.max_tasks is None:
+             logging.info("Processing all found/specified tasks (no max_tasks or tasks range limit).")
+
+    except ValueError as e:
+        logging.error(f"Configuration error: {e}")
+        return
+
+    # 2. Initialize Agent and Model (Use CodeGeneratingAgent)
+    try:
+        model_enum_member = ModelOption[g_config.model_identifier]
+        g_model_value = model_enum_member.value
+
+        model = get_model(g_config, role="main")
+        # Instantiate the correct agent
+        agent = CodeGeneratingAgent(model=model)
+        logging.info(f"Initialized CodeGeneratingAgent with model: {g_config.model_identifier} ({g_model_value})")
+    except ValueError as e:
+        logging.error(f"Model initialization failed: {e}")
+        logging.error("Ensure OPENROUTER_API_KEY is set in .env for non-local models, or a local server is running for LOCAL models.")
+        return
+    except Exception as e:
+        logging.error(f"Unexpected error during model initialization: {e}")
+        return
+
+
+    # 3. Prepare Task List/Iterator and Semaphore (same as before)
+    semaphore = asyncio.Semaphore(g_config.max_concurrent_tasks)
+    async_tasks = []
+    g_submitted_count = 0
+
+    # 4. Process Tasks Concurrently (same logic, uses updated process_single_task)
+    g_start_time = time.time()
+    logging.info(f"Starting task processing with concurrency limit {g_config.max_concurrent_tasks}...")
+
+    # Always process from dataset.json
+    task_source = g_config.absolute_dataset_file
+    logging.info(f"Processing tasks iteratively from dataset file: {task_source}")
+    try:
+        # Pass the task_range to the data loader
+        task_generator = load_tasks_from_dataset(
+            dataset_path=task_source,
+            task_ids=g_config.task_ids,
+            max_tasks=g_config.max_tasks, # Keep max_tasks for backward compatibility if needed, though --tasks overrides
+            task_range=task_range # Pass the new range
+        )
+        for i, task_item in enumerate(task_generator):
+            # Pass total_tasks=None as we don't know the total count upfront from the generator easily
+            coro = process_single_task(task_item, g_config, agent, semaphore, i, total_tasks=None)
+            async_tasks.append(coro)
+            g_submitted_count += 1
+
+        logging.info(f"Submitted {g_submitted_count} tasks from dataset generator for processing.")
+        if g_submitted_count == 0:
+             logging.warning("No tasks were yielded from the dataset generator. Check filters, range, or file content.")
+             results_raw = [] # Ensure results_raw exists even if no tasks
+        else:
+             results_raw = await asyncio.gather(*async_tasks, return_exceptions=True)
+
+    except Exception as e:
+        logging.error(f"Error while iterating through dataset {task_source}: {e}", exc_info=True)
+        return # Exit if dataset loading fails
+
+    # 5. Wait for all tasks to complete (same logic, but results_raw might be empty)
+    for res in results_raw:
+        if isinstance(res, Exception):
+            logging.error(f"Task failed with exception during gather/scheduling: {res}", exc_info=res)
+        elif res is not None:
+             logging.warning(f"Unexpected non-None item in results_raw after gather: {type(res)} - {res}")
+
+    # 6. Log Final Summary (same logic, saving handled by atexit/signal)
+    end_time = time.time()
+    total_time = end_time - g_start_time if g_start_time else 0
+
+    log_summary = (
+        f"Finished processing loop. Submitted: {g_submitted_count}, "
+        f"Successful: {g_successful_count}, Failed: {g_failed_count}, Skipped: {g_skipped_count}. "
+        f"Total time: {total_time:.2f} seconds."
+    )
+    logging.info(log_summary)
+    logging.info("Code data generation loop complete. Final results will be saved on exit.") # Updated log message
+
+
 if __name__ == "__main__":
     # --- Register Exit Handlers FIRST ---
     signal.signal(signal.SIGINT, signal_handler)
     atexit.register(save_final_results)
     logging.info("Registered signal handler for SIGINT and atexit handler for final save.")
     # --- End Exit Handlers ---
+
+
+    # --- Argument Parsing (Updated description) ---
+    parser = argparse.ArgumentParser(description="Generate ARC Code Data") # Updated description
+    parser.add_argument(
+        "--model_identifier",
+        type=str,
+        default=ModelOption.LOCAL_0.name,
+        choices=[option.name for option in ModelOption],
+        help=f"Model identifier to use (default: {ModelOption.LOCAL_0.name})"
+    )
+    # Add a mutually exclusive group for --max_tasks and --tasks
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--max_tasks",
+        type=int,
+        default=None,
+        help="Maximum number of tasks to process (default: process all)"
+    )
+    group.add_argument(
+        "--tasks",
+        type=str,
+        default=None,
+        help="Specify a range of tasks to process by index, e.g., [20:40] (inclusive start, exclusive end)"
+    )
+    # Removed --use_dataset_json argument
+    parser.add_argument(
+        "--dataset_directory", # Renamed argument
+        type=str,
+        default="../data", # Default points to the directory containing dataset.json
+        help="Path to the directory containing dataset.json"
+    )
+    parser.add_argument(
+        "--max_concurrent_tasks",
+        type=int,
+        default=5,
+        help="Maximum number of tasks to process concurrently (default: 5)"
+    )
+    # --- End Argument Parsing ---
+
+    args = parser.parse_args()
+
+    # Parse the --tasks argument if provided
+    task_range = None
+    if args.tasks:
+        try:
+            # Expecting format [start:end]
+            if not args.tasks.startswith('[') or not args.tasks.endswith(']'):
+                raise ValueError("Invalid format. Expected [start:end]")
+            range_str = args.tasks[1:-1] # Remove brackets
+            start_str, end_str = range_str.split(':')
+            start = int(start_str) if start_str else 0
+            end = int(end_str) if end_str else None
+            if start < 0 or (end is not None and end < start):
+                 raise ValueError("Invalid range values.")
+            task_range = (start, end)
+            logging.info(f"Parsed task range: {task_range}")
+        except ValueError as e:
+            logging.error(f"Error parsing --tasks argument: {e}. Please use format [start:end], e.g., [0:10] or [20:].")
+            sys.exit(1)
+        except Exception as e:
+            logging.error(f"Unexpected error parsing --tasks argument: {e}", exc_info=True)
+            sys.exit(1)
+
+    # Run the async function
+    try:
+        # Call the renamed main async function and pass the task_range
+        asyncio.run(generate_code_data(args, task_range=task_range)) # Updated function call
+    except KeyboardInterrupt:
+        logging.info("Code data generation interrupted by user.") # Log message is okay
+    except Exception as e:
+        logging.error(f"Code data generation failed with an unexpected error: {e}", exc_info=True) # Log message is okay
 
 
     # --- Argument Parsing (Updated description) ---

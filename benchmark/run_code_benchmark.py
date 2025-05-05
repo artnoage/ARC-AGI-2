@@ -446,12 +446,202 @@ async def run_code_benchmark(args):
     logging.info("Benchmark run loop complete. Final results will be saved on exit.")
 
 
+# Modify the run_code_benchmark function signature to accept task_range
+async def run_code_benchmark(args, task_range=None):
+    """Runs the end-to-end ARC code generation and verification benchmark."""
+    global g_config, g_start_time, g_model_value, g_submitted_count
+    logging.info("Starting ARC Code Generation & Verification Benchmark...")
+
+    # 1. Load Configuration
+    try:
+        # Note: ARCBenchmarkConfig's output_directory default is now '../synthetic_data'
+        # We will override the save paths in the saving functions for benchmark results.
+        g_config = ARCBenchmarkConfig(
+            model_identifier=args.model_identifier,
+            max_tasks=args.max_tasks, # Keep max_tasks in config for logging/metadata
+            dataset_directory=args.dataset_directory,
+            max_concurrent_tasks=args.max_concurrent_tasks
+            # output_directory is NOT set here, saving functions construct benchmark path
+        )
+        logging.info(f"Configuration loaded. Base output directory (from config, may be ignored by saving funcs): {g_config.output_directory}")
+        logging.info(f"Max concurrent tasks: {g_config.max_concurrent_tasks}")
+        logging.info(f"Using dataset file: {g_config.absolute_dataset_file}")
+        logging.info(f"Using model: {g_config.model_identifier}")
+        if g_config.max_tasks is not None:
+            logging.info(f"Maximum tasks to process (from --max_tasks): {g_config.max_tasks}")
+        if task_range is not None:
+             logging.info(f"Processing tasks within index range (from --tasks): {task_range}")
+        elif g_config.max_tasks is None:
+             logging.info("Processing all found/specified tasks (no max_tasks or tasks range limit).")
+
+    except ValueError as e:
+        logging.error(f"Configuration error: {e}")
+        return
+
+    # 2. Initialize Agent and Model
+    try:
+        model_enum_member = ModelOption[g_config.model_identifier]
+        g_model_value = model_enum_member.value
+
+        model = get_model(g_config, role="main")
+        agent = CodeGeneratingAgent(model=model)
+        logging.info(f"Initialized CodeGeneratingAgent with model: {g_config.model_identifier} ({g_model_value})")
+    except ValueError as e:
+        logging.error(f"Model initialization failed: {e}")
+        logging.error("Ensure OPENROUTER_API_KEY is set in .env for non-local models, or a local server is running for LOCAL models.")
+        return
+    except Exception as e:
+        logging.error(f"Unexpected error during model initialization: {e}")
+        return
+
+    # 3. Prepare Task List/Iterator and Semaphore
+    semaphore = asyncio.Semaphore(g_config.max_concurrent_tasks)
+    async_tasks = []
+    g_submitted_count = 0
+
+    # 4. Process Tasks Concurrently
+    g_start_time = time.time()
+    logging.info(f"Starting task processing with concurrency limit {g_config.max_concurrent_tasks}...")
+
+    task_source = g_config.absolute_dataset_file
+    logging.info(f"Processing tasks iteratively from dataset file: {task_source}")
+    try:
+        # Pass the task_range to the data loader
+        task_generator = load_tasks_from_dataset(
+            dataset_path=task_source,
+            task_ids=g_config.task_ids, # task_ids is always None in this script currently
+            max_tasks=g_config.max_tasks, # Keep max_tasks for backward compatibility if needed, though --tasks overrides
+            task_range=task_range # Pass the new range
+        )
+        for i, task_item in enumerate(task_generator):
+            # The index 'i' here is the index within the *yielded* tasks,
+            # not necessarily the original index in the dataset if a range was used.
+            # We might need to adjust logging or tracking if we need the original index.
+            # For now, use 'i' as the sequence number of tasks being processed in this run.
+            coro = process_single_task(task_item, g_config, agent, semaphore, i, total_tasks=None, best_of=args.best_of)
+            async_tasks.append(coro)
+            g_submitted_count += 1
+
+        logging.info(f"Submitted {g_submitted_count} tasks from dataset generator for processing.")
+        if g_submitted_count == 0:
+             logging.warning("No tasks were yielded from the dataset generator. Check filters, range, or file content.")
+             results_raw = []
+        else:
+             results_raw = await asyncio.gather(*async_tasks, return_exceptions=True)
+
+    except Exception as e:
+        logging.error(f"Error while iterating through dataset {task_source}: {e}", exc_info=True)
+        return
+
+    # 5. Wait for all tasks to complete
+    for res in results_raw:
+        if isinstance(res, Exception):
+            logging.error(f"Task failed with exception during gather/scheduling: {res}", exc_info=res)
+        elif res is not None:
+             logging.warning(f"Unexpected non-None item in results_raw after gather: {type(res)} - {res}")
+
+    # 6. Log Final Summary (Saving handled by atexit/signal)
+    end_time = time.time()
+    total_time = end_time - g_start_time if g_start_time else 0
+
+    # Calculate final verification stats again for logging
+    total_verified = g_verification_passed_count + g_verification_failed_mismatch_count + g_verification_failed_execution_count + g_verification_failed_other_count
+    verification_rate = (g_verification_passed_count / total_verified * 100) if total_verified > 0 else 0
+
+    log_summary = (
+        f"Finished processing loop. Submitted: {g_submitted_count}, "
+        f"Gen Success: {g_generation_successful_count}, Gen Failed: {g_generation_failed_count}. "
+        f"Verify Passed: {g_verification_passed_count}, Verify Mismatch: {g_verification_failed_mismatch_count}, "
+        f"Verify Exec Error: {g_verification_failed_execution_count}, Verify Other Fail: {g_verification_failed_other_count}. "
+        f"Verification Pass Rate: {verification_rate:.2f}%. "
+        f"Total time: {total_time:.2f} seconds."
+    )
+    logging.info(log_summary)
+    logging.info("Benchmark run loop complete. Final results will be saved on exit.")
+
+
 if __name__ == "__main__":
     # --- Register Exit Handlers FIRST ---
     signal.signal(signal.SIGINT, signal_handler)
     atexit.register(save_final_results)
     logging.info("Registered signal handler for SIGINT and atexit handler for final save.")
     # --- End Exit Handlers ---
+
+    # --- Argument Parsing ---
+    parser = argparse.ArgumentParser(description="Run End-to-End ARC Code Generation and Verification Benchmark")
+    parser.add_argument(
+        "--model_identifier",
+        type=str,
+        default=ModelOption.LOCAL_0.name,
+        choices=[option.name for option in ModelOption],
+        help=f"Model identifier to use (default: {ModelOption.LOCAL_0.name})"
+    )
+    # Add a mutually exclusive group for --max_tasks and --tasks
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--max_tasks",
+        type=int,
+        default=None,
+        help="Maximum number of tasks to process (default: process all)"
+    )
+    group.add_argument(
+        "--tasks",
+        type=str,
+        default=None,
+        help="Specify a range of tasks to process by index, e.g., [20:40] (inclusive start, exclusive end)"
+    )
+    parser.add_argument(
+        "--dataset_directory",
+        type=str,
+        default="../data", # Default points to the directory containing dataset.json relative to benchmark/
+        help="Path to the directory containing dataset.json"
+    )
+    parser.add_argument(
+        "--max_concurrent_tasks",
+        type=int,
+        default=5, # Default concurrency
+        help="Maximum number of tasks to process concurrently (default: 5)"
+    )
+    parser.add_argument(
+        "--best_of",
+        type=int,
+        default=1,
+        help="Number of responses to generate for each task (default: 1)"
+    )
+    # --- End Argument Parsing ---
+
+    args = parser.parse_args()
+
+    # Parse the --tasks argument if provided
+    task_range = None
+    if args.tasks:
+        try:
+            # Expecting format [start:end]
+            if not args.tasks.startswith('[') or not args.tasks.endswith(']'):
+                raise ValueError("Invalid format. Expected [start:end]")
+            range_str = args.tasks[1:-1] # Remove brackets
+            start_str, end_str = range_str.split(':')
+            start = int(start_str) if start_str else 0
+            end = int(end_str) if end_str else None
+            if start < 0 or (end is not None and end < start):
+                 raise ValueError("Invalid range values.")
+            task_range = (start, end)
+            logging.info(f"Parsed task range: {task_range}")
+        except ValueError as e:
+            logging.error(f"Error parsing --tasks argument: {e}. Please use format [start:end], e.g., [0:10] or [20:].")
+            sys.exit(1)
+        except Exception as e:
+            logging.error(f"Unexpected error parsing --tasks argument: {e}", exc_info=True)
+            sys.exit(1)
+
+    # Run the async function
+    try:
+        # Pass the parsed task_range to the benchmark function
+        asyncio.run(run_code_benchmark(args, task_range=task_range))
+    except KeyboardInterrupt:
+        logging.info("Benchmark run interrupted by user.")
+    except Exception as e:
+        logging.error(f"Benchmark run failed with an unexpected error: {e}", exc_info=True)
 
     # --- Argument Parsing ---
     parser = argparse.ArgumentParser(description="Run End-to-End ARC Code Generation and Verification Benchmark")

@@ -9,7 +9,12 @@ logger = logging.getLogger(__name__) # Use a specific logger for this module
 
 # Removed get_task_files and load_task as only dataset.json loading is supported now.
 
-def load_tasks_from_dataset(dataset_path: str, task_ids: Optional[List[str]] = None, max_tasks: Optional[int] = None) -> Iterator[Tuple[str, Dict]]:
+def load_tasks_from_dataset(
+    dataset_path: str,
+    task_ids: Optional[List[str]] = None,
+    max_tasks: Optional[int] = None,
+    task_range: Optional[Tuple[int, Optional[int]]] = None # Add task_range parameter
+) -> Iterator[Tuple[str, Dict]]:
     """
     Loads tasks iteratively from a dataset.json file (expected to be a list of task objects,
     where each object is a dictionary containing a 'task_id' key and task data).
@@ -18,6 +23,8 @@ def load_tasks_from_dataset(dataset_path: str, task_ids: Optional[List[str]] = N
         dataset_path: The absolute path to the dataset.json file.
         task_ids: An optional list of specific task IDs to include.
         max_tasks: An optional limit on the number of tasks to yield.
+        task_range: An optional tuple (start, end) specifying an index range
+                    (inclusive start, exclusive end) of tasks to load from the dataset list.
 
     Yields:
         Tuples of (task_id, task_data).
@@ -32,10 +39,28 @@ def load_tasks_from_dataset(dataset_path: str, task_ids: Optional[List[str]] = N
             logger.error(f"Dataset file {dataset_path} is not a JSON list as expected.")
             return # Stop iteration
 
+        # Apply task_range slicing if provided
+        if task_range is not None:
+            start, end = task_range
+            # Ensure end is not out of bounds if provided
+            if end is not None and end > len(dataset):
+                 logger.warning(f"Specified end index {end} is greater than dataset size {len(dataset)}. Using dataset size as end index.")
+                 end = len(dataset)
+            # Ensure start is not out of bounds
+            if start >= len(dataset):
+                 logger.warning(f"Specified start index {start} is greater than or equal to dataset size {len(dataset)}. No tasks will be loaded.")
+                 return # No tasks to yield
+            
+            dataset_slice = dataset[start:end]
+            logger.info(f"Applied task range {task_range}. Processing a slice of {len(dataset_slice)} tasks.")
+        else:
+            dataset_slice = dataset # Process the whole dataset if no range is specified
+
         processed_count = 0
         task_id_set = set(task_ids) if task_ids else None
 
-        for task_item in dataset:
+        # Iterate over the potentially sliced dataset
+        for task_item in dataset_slice:
             # 1. Basic validation of task_item structure
             if not isinstance(task_item, dict):
                 logger.warning(f"Skipping non-dictionary item in dataset list: {type(task_item)}")
@@ -47,7 +72,7 @@ def load_tasks_from_dataset(dataset_path: str, task_ids: Optional[List[str]] = N
                 logger.warning(f"Skipping task item missing 'task_id' key: {task_item}")
                 continue
 
-            # 3. Filter by task_ids if provided
+            # 3. Filter by task_ids if provided (applied AFTER range slicing)
             if task_id_set and task_id not in task_id_set:
                 continue
 
@@ -61,20 +86,20 @@ def load_tasks_from_dataset(dataset_path: str, task_ids: Optional[List[str]] = N
             yield task_id, task_data
             processed_count += 1
 
-            # 6. Check max_tasks limit after yielding
+            # 6. Check max_tasks limit after yielding (applied AFTER range slicing and task_id filtering)
             if max_tasks is not None and processed_count >= max_tasks:
                 logger.info(f"Reached max_tasks limit ({max_tasks}). Stopping iteration.")
                 break # Stop yielding more tasks
 
         # --- Logging after iteration ---
-        if task_ids and processed_count < len(task_ids):
-             logger.warning(f"Found and yielded {processed_count} matching tasks, but {len(task_ids)} were requested. Some requested task IDs might not be in the dataset or were invalid.")
+        if task_ids and processed_count < len(task_id_set):
+             logger.warning(f"Found and yielded {processed_count} matching tasks within the specified range/dataset, but {len(task_id_set)} were requested by ID. Some requested task IDs might not be in the dataset slice or were invalid.")
         elif processed_count == 0 and not task_ids:
-             logger.warning(f"No tasks yielded from the dataset file: {dataset_path}. It might be empty, contain only invalid tasks, or lack 'task_id' keys.")
+             logger.warning(f"No tasks yielded from the dataset slice. It might be empty, contain only invalid tasks, lack 'task_id' keys, or the specified range was empty.")
         elif processed_count == 0 and task_ids:
-             logger.warning(f"No tasks yielded. None of the requested task IDs {task_ids} were found or valid in the dataset.")
+             logger.warning(f"No tasks yielded. None of the requested task IDs {task_ids} were found or valid within the dataset slice.")
         else:
-            logger.info(f"Finished iterating dataset. Yielded {processed_count} tasks.")
+            logger.info(f"Finished iterating dataset slice. Yielded {processed_count} tasks.")
 
 
     except FileNotFoundError:

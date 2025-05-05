@@ -366,6 +366,130 @@ async def run_benchmark(args): # Make function async and accept args
     logging.info("Benchmark run loop complete. Final results will be saved on exit.")
 
 
+# Modify the run_benchmark function signature to accept task_range
+async def run_benchmark(args, task_range=None): # Make function async and accept args
+    """Runs the ARC reasoning benchmark with concurrency control."""
+    global g_config, g_start_time, g_model_value, g_submitted_count # Declare globals we modify
+    logging.info("Starting ARC Reasoning Benchmark...")
+
+    # 1. Load Configuration using parsed args (updated for dataset.json only)
+    try:
+        # Pass parsed arguments to the config constructor
+        g_config = ARCBenchmarkConfig( # Assign to global config
+            model_identifier=args.model_identifier,
+            max_tasks=args.max_tasks, # Keep max_tasks in config for logging/metadata
+            # use_dataset_json is removed
+            dataset_directory=args.dataset_directory, # Use the renamed argument
+            max_concurrent_tasks=args.max_concurrent_tasks # Pass concurrency arg
+            # Add other args here if needed, e.g., main_temp, main_port
+        )
+        logging.info(f"Configuration loaded. Output directory: {g_config.output_directory}")
+        logging.info(f"Max concurrent tasks: {g_config.max_concurrent_tasks}") # Log concurrency limit
+        # Always using dataset.json now
+        logging.info(f"Using dataset file: {g_config.absolute_dataset_file}")
+        logging.info(f"Using model: {g_config.model_identifier}") # Log the actual model used
+        if g_config.max_tasks is not None: # Check if max_tasks was set
+            logging.info(f"Maximum tasks to process (from --max_tasks): {g_config.max_tasks}")
+        if task_range is not None:
+             logging.info(f"Processing tasks within index range (from --tasks): {task_range}")
+        elif g_config.max_tasks is None:
+             logging.info("Processing all found/specified tasks (no max_tasks or tasks range limit).")
+
+    except ValueError as e:
+        logging.error(f"Configuration error: {e}")
+        return
+
+    # 2. Initialize Agent and Model
+    try:
+        # Get the model value (full name) from the ModelOption enum
+        model_enum_member = ModelOption[g_config.model_identifier]
+        g_model_value = model_enum_member.value  # Assign to global
+        
+        # Use get_model to initialize the actual model
+        model = get_model(g_config, role="main") # Use global config
+        agent = SimpleAgent(model=model)
+        logging.info(f"Initialized SimpleAgent with model: {g_config.model_identifier} ({g_model_value})")
+    except ValueError as e:
+        logging.error(f"Model initialization failed: {e}")
+        logging.error("Ensure OPENROUTER_API_KEY is set in .env for non-local models, or a local server is running for LOCAL models.")
+        return
+    except Exception as e:
+        logging.error(f"Unexpected error during model initialization: {e}")
+        return
+
+
+    # 3. Prepare Task List/Iterator and Semaphore
+    semaphore = asyncio.Semaphore(g_config.max_concurrent_tasks) # Use global config
+    async_tasks = [] # List to hold the asyncio tasks to be gathered
+    g_submitted_count = 0 # Use global count
+
+    # 4. Process Tasks Concurrently
+    g_start_time = time.time() # Assign to global start time
+    logging.info(f"Starting task processing with concurrency limit {g_config.max_concurrent_tasks}...")
+
+    # Always process from dataset.json
+    task_source = g_config.absolute_dataset_file # Use global config
+    logging.info(f"Processing tasks iteratively from dataset file: {task_source}")
+    try:
+        # Iterate directly over the generator, don't load all into memory
+        # Pass the task_range to the data loader
+        task_generator = load_tasks_from_dataset(
+            dataset_path=task_source,
+            task_ids=g_config.task_ids, # Use global config
+            max_tasks=g_config.max_tasks, # Keep max_tasks for backward compatibility if needed, though --tasks overrides
+            task_range=task_range # Pass the new range
+        )
+        for i, task_item in enumerate(task_generator):
+            # Create the coroutine for this task
+            # Pass total_tasks=None as we don't know the total count upfront from the generator easily
+            coro = process_single_task(task_item, g_config, agent, semaphore, i, total_tasks=None)
+            async_tasks.append(coro)
+            g_submitted_count += 1 # Use global count
+
+        logging.info(f"Submitted {g_submitted_count} tasks from dataset generator for processing.")
+        if g_submitted_count == 0:
+             logging.warning("No tasks were yielded from the dataset generator. Check filters, range, or file content.")
+             # No need to run gather if no tasks were submitted
+             results_raw = []
+        else:
+             # Run tasks concurrently and gather results
+             results_raw = await asyncio.gather(*async_tasks, return_exceptions=True)
+
+    except Exception as e:
+        logging.error(f"Error while iterating through dataset {task_source}: {e}", exc_info=True)
+        return # Exit if dataset iteration fails
+
+    # 5. Wait for all tasks to complete (same logic, but results_raw might be empty)
+    # The results_raw variable now primarily holds exceptions if any occurred during gather,
+    # or None if the coroutine finished without returning (which is our case now).
+    # Actual results are in g_results. We just need to log any gather-level exceptions.
+    for res in results_raw:
+        if isinstance(res, Exception):
+            # These are exceptions that happened *outside* the try/except in process_single_task,
+            # likely during the asyncio scheduling or semaphore handling itself.
+            logging.error(f"Task failed with exception during gather/scheduling: {res}", exc_info=res)
+            # We don't have task_id here, but the error is logged.
+            # We could potentially increment g_failed_count here too, but it might double-count
+            # if the exception also caused process_single_task to log an error.
+            # Let's rely on the logging within process_single_task for counts.
+        elif res is not None:
+             # This shouldn't happen anymore as process_single_task doesn't return.
+             logging.warning(f"Unexpected non-None item in results_raw after gather: {type(res)} - {res}")
+
+    # 6. Log Final Summary (Saving is handled by atexit/signal)
+    end_time = time.time()
+    total_time = end_time - g_start_time if g_start_time else 0 # Use global start time
+
+    log_summary = (
+        f"Finished processing loop. Submitted: {g_submitted_count}, "
+        f"Successful: {g_successful_count}, Failed: {g_failed_count}, Skipped: {g_skipped_count}. "
+        f"Total time: {total_time:.2f} seconds."
+    )
+    logging.info(log_summary)
+    # Final saving will be triggered by atexit handler automatically now.
+    logging.info("Benchmark run loop complete. Final results will be saved on exit.")
+
+
 if __name__ == "__main__":
     # --- Register Exit Handlers FIRST ---
     # Register the signal handler for Ctrl+C
@@ -374,6 +498,80 @@ if __name__ == "__main__":
     atexit.register(save_final_results)
     logging.info("Registered signal handler for SIGINT and atexit handler for final save.")
     # --- End Exit Handlers ---
+
+
+    # --- Argument Parsing ---
+    parser = argparse.ArgumentParser(description="Run ARC Reasoning Benchmark")
+    parser.add_argument(
+        "--model_identifier",
+        type=str,
+        default=ModelOption.LOCAL_0.name, # Default from config
+        choices=[option.name for option in ModelOption], # Use enum names as choices
+        help=f"Model identifier to use (default: {ModelOption.LOCAL_0.name})"
+    )
+    # Add a mutually exclusive group for --max_tasks and --tasks
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--max_tasks",
+        type=int,
+        default=None, # Default from config
+        help="Maximum number of tasks to process (default: process all)"
+    )
+    group.add_argument(
+        "--tasks",
+        type=str,
+        default=None,
+        help="Specify a range of tasks to process by index, e.g., [20:40] (inclusive start, exclusive end)"
+    )
+    # Removed --use_dataset_json argument
+    parser.add_argument(
+        "--dataset_directory", # Renamed argument
+        type=str,
+        default="../data", # Default points to the directory containing dataset.json
+        help="Path to the directory containing dataset.json"
+    )
+    parser.add_argument(
+        "--max_concurrent_tasks",
+        type=int,
+        default=5, # Default from config
+        help="Maximum number of tasks to process concurrently (default: 5)"
+    )
+    # Add arguments for other config options if needed, e.g.:
+    # parser.add_argument("--main_temp", type=float, default=0.0, help="Main model temperature")
+
+
+    args = parser.parse_args()
+    # --- End Argument Parsing ---
+
+    # Parse the --tasks argument if provided
+    task_range = None
+    if args.tasks:
+        try:
+            # Expecting format [start:end]
+            if not args.tasks.startswith('[') or not args.tasks.endswith(']'):
+                raise ValueError("Invalid format. Expected [start:end]")
+            range_str = args.tasks[1:-1] # Remove brackets
+            start_str, end_str = range_str.split(':')
+            start = int(start_str) if start_str else 0
+            end = int(end_str) if end_str else None
+            if start < 0 or (end is not None and end < start):
+                 raise ValueError("Invalid range values.")
+            task_range = (start, end)
+            logging.info(f"Parsed task range: {task_range}")
+        except ValueError as e:
+            logging.error(f"Error parsing --tasks argument: {e}. Please use format [start:end], e.g., [0:10] or [20:].")
+            sys.exit(1)
+        except Exception as e:
+            logging.error(f"Unexpected error parsing --tasks argument: {e}", exc_info=True)
+            sys.exit(1)
+
+    # Run the async function using asyncio.run() and pass parsed args and task_range
+    try:
+        asyncio.run(run_benchmark(args, task_range=task_range))
+    except KeyboardInterrupt:
+        logging.info("Benchmark run interrupted by user.")
+    except Exception as e:
+        logging.error(f"Benchmark failed with an unexpected error: {e}", exc_info=True)
 
 
     # --- Argument Parsing ---
