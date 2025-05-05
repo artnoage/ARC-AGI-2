@@ -71,11 +71,22 @@ async function sendMessageToOpenRouter(apiKey, userMessage, taskContext, tempera
     const messages = [
         {
             role: "system",
-            content: "You are an AI assistant helping with Abstraction and Reasoning Corpus (ARC) tasks. " +
+            content: "You are an AI assistant helping with Abstraction and Reasoning Corpus (ARC) tasks... " +
                      "Your goal is to help the user understand patterns, transformations, and reasoning strategies " +
                      "for solving ARC tasks. Be clear, helpful, and provide step-by-step explanations when appropriate. " +
-                     "IMPORTANT: When providing code solutions, always name the main function 'solve_task'. " +
-                     "Here is the context for the current task: " + taskContext
+                     
+                     taskContext +
+                     
+                     "\n---\n" +
+                     "**Instructions for Code Generation:**\n\n" +
+                     "1.  Analyze the examples to determine the transformation rule.\n" +
+                     "2.  Explain the rule clearly.\n" +
+                     "3.  Provide Python code implementing the rule in a function named `solve_task`.\n" +
+                     "4.  **IMPORTANT:** The `solve_task(task_input)` function must be robust. It should correctly handle being called with EITHER:\n" +
+                     "    *   The full ARC task dictionary (where the relevant grid is typically `task_input['test'][0]['input']`).\n" +
+                     "    *   Just the input grid itself (a list of lists).\n" +
+                     "    Include checks (e.g., using `isinstance`) to determine the input type and extract/use the grid accordingly. Handle potential errors gracefully if the input format is unexpected.\n" +
+                     "---"
         }
     ];
     

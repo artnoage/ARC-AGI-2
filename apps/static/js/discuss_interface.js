@@ -155,6 +155,11 @@ $(document).ready(function() {
     $('#execute_code_btn').click(function() {
         executeCode();
     });
+    
+    // Visualize input button
+    $('#visualize_input_btn').click(function() {
+        visualizeInputGrid();
+    });
 });
 
 // WebSocket connection
@@ -441,12 +446,12 @@ function sendUserMessage() {
                 taskContext += `Example ${i+1}:\n`;
                 
                 // Input grid
-                taskContext += "Input grid:\n";
-                taskContext += JSON.stringify(example.input, null, 2) + "\n";
+                taskContext += "Input: ";
+                taskContext += JSON.stringify(example.input) + "\n";
                 
                 // Output grid
-                taskContext += "Output grid:\n";
-                taskContext += JSON.stringify(example.output, null, 2) + "\n\n";
+                taskContext += "Output: ";
+                taskContext += JSON.stringify(example.output) + "\n\n";
             }
             
             // Add test input information if available (but not the expected output)
@@ -454,8 +459,8 @@ function sendUserMessage() {
                 taskContext += "TEST INPUTS:\n";
                 for (let i = 0; i < task.test.length; i++) {
                     const test = task.test[i];
-                    taskContext += `Test ${i+1} input grid:\n`;
-                    taskContext += JSON.stringify(test.input, null, 2) + "\n\n";
+                    taskContext += `Test ${i+1} input grid: `;
+                    taskContext += JSON.stringify(test.input) + "\n\n";
                 }
             }
         }
@@ -956,6 +961,55 @@ function executeCode() {
             $('#code_error_display').text('Failed to communicate with the server').show();
         }
     });
+}
+
+// Input Grid Visualization Function
+function visualizeInputGrid() {
+    // Get input grid from UI
+    const inputGridText = $('#grid_input').val().trim();
+    
+    // Validate input
+    if (!inputGridText) {
+        $('#execution_status').text('Please enter an input grid');
+        return;
+    }
+    
+    // Parse input grid
+    let inputGrid;
+    try {
+        inputGrid = JSON.parse(inputGridText);
+        if (!Array.isArray(inputGrid) || !inputGrid.every(row => Array.isArray(row))) {
+            throw new Error('Input grid must be a 2D array');
+        }
+    } catch (e) {
+        $('#execution_status').text('Invalid input grid format: ' + e.message);
+        return;
+    }
+    
+    // Create a Grid object from the input
+    const gridObject = convertSerializedGridToGridObject(inputGrid);
+    
+    // Clear previous input visualization
+    const gridDisplay = $('#grid_input_display');
+    gridDisplay.empty();
+    
+    // Create visual grid container (using common grid styling)
+    const gridContainer = $('<div class="grid_container"></div>'); // Use a generic class or style directly
+    
+    // Fill the grid with data
+    fillJqGridWithData(gridContainer, gridObject);
+    
+    // Size the cells appropriately based on the container's available space
+    // We use the width of the parent (#grid_input_right) and a reasonable height
+    const containerWidth = gridDisplay.parent().width() || 200; // Get width of #grid_input_right
+    const containerHeight = 200; // Set a reasonable max height for the visual grid
+    fitCellsToContainer(gridContainer, gridObject.height, gridObject.width, containerHeight, containerWidth);
+    
+    // Add the visual grid directly to the display area
+    gridDisplay.append(gridContainer);
+    
+    // Show the input display
+    $('#grid_input_display').show();
 }
 
 function displayOutputGrid(grid) {

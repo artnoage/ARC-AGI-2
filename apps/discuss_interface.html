@@ -79,9 +79,20 @@
     # Return a 2D list representing the output grid
     return input_grid"></textarea>
                         </div>
-                        <div id="grid_input_container">
-                            <label for="grid_input">Input Grid (JSON format):</label>
-                            <textarea id="grid_input" placeholder="[[0, 0, 0], [0, 1, 0], [0, 0, 0]]"></textarea>
+                        <div id="grid_input_section"> <!-- This will be the flex row container -->
+                            <div id="grid_input_left"> <!-- Left side -->
+                                <div id="grid_input_container">
+                                    <label for="grid_input">Input Grid (JSON format):</label>
+                                    <textarea id="grid_input" placeholder="[[0, 0, 0], [0, 1, 0], [0, 0, 0]]"></textarea>
+                                </div>
+                                <div id="grid_input_controls">
+                                    <button id="visualize_input_btn">Visualize Input</button>
+                                </div>
+                            </div>
+                            <div id="grid_input_right"> <!-- Right side -->
+                                <label>Visual Input:</label> <!-- Add a label for clarity -->
+                                <div id="grid_input_display"></div> <!-- Visual grid will go here -->
+                            </div>
                         </div>
                         <div id="code_execution_controls">
                             <button id="execute_code_btn">Execute Code</button>
