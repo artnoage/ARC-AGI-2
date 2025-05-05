@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>ARC AI Discussion Interface</title>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <!-- Add Socket.IO Client Library -->
+        <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+        <script src="/arc2/static/js/common.js"></script>
+        <script src="/arc2/static/js/discuss_interface.js"></script>
+
+        <link rel="stylesheet" type="text/css" href="/arc2/static/css/common.css">
+        <link rel="stylesheet" type="text/css" href="/arc2/static/css/discuss_interface.css">
+
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <div id="workspace">
+            <!-- Discussion Interface -->
+            <div id="discussion_interface">
+                <div id="top_bar">
+                    <span id="current_user">User: Anonymous</span>
+                    <button id="logout_btn" class="secondary_btn">Logout</button>
+                </div>
+
+                <div id="main_content">
+                    <!-- Task Demonstration Area -->
+                    <div id="task_area">
+                        <div class="section_header">Task Demonstration</div>
+                        <div id="task_navigation">
+                            <button id="random_task_btn">Random Task</button>
+                            <button id="prev_task_btn">< Prev</button>
+                            <span id="task_index_display">Task 1/1</span>
+                            <button id="next_task_btn">Next ></button>
+                            <div id="goto_task_controls">
+                                <label for="task_id_input">Go to ID:</label>
+                                <input type="text" id="task_id_input" size="10" placeholder="Enter ID">
+                                <button id="goto_task_btn">Go</button>
+                            </div>
+                        </div>
+                        <div id="task_preview"></div>
+                    </div>
+
+                    <!-- Chat Area -->
+                    <div id="chat_area">
+                        <div class="section_header">Discussion</div>
+                        <div id="chat_messages"></div>
+                        <div id="chat_input_area">
+                            <textarea id="chat_input" placeholder="Type your message here..."></textarea>
+                            <button id="send_message_btn">Send</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Key Settings -->
+                <div id="api_settings">
+                    <div class="section_header">API Settings</div>
+                    <div id="api_form">
+                        <label for="openrouter_key">OpenRouter API Key:</label>
+                        <input type="password" id="openrouter_key" placeholder="Enter your OpenRouter API key">
+                        <button id="save_key_btn">Save Key</button>
+                        <span id="api_status"></span>
+                    </div>
+                </div>
+            </div>
+            <!-- End Discussion Interface -->
+        </div>
+    </body>
+</html>

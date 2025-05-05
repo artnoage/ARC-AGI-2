@@ -1,20 +1,18 @@
 // Internal state.
 var CURRENT_INPUT_GRID = new Grid(3, 3); // Grid object for the current test input (displayed)
 var CURRENT_OUTPUT_GRID = new Grid(3, 3); // Grid object for the user's output editor
-var ORIGINAL_TASK_DATA = null; // Holds the raw task object {train: [...], test: [...], id: ...} as loaded
+var ORIGINAL_TASK_DATA = null; // Holds the raw task object {train: [...], test: [...], task_id: ...} as loaded
 var DISPLAYED_TASK_DATA = null; // Holds the potentially transformed task object
 var DISPLAYED_TRAIN_PAIRS = []; // Train pairs for the *currently displayed* (transformed) task
 var DISPLAYED_TEST_PAIRS = []; // Test pairs for the *currently displayed* (transformed) task
 var CURRENT_TEST_PAIR_INDEX = 0; // Index for DISPLAYED_TEST_PAIRS
 var COPY_PASTE_DATA = new Array();
 var LOADED_TASK_LIST = []; // Holds the raw list of all entries from dataset.json
-var TASK_VERSIONS_MAP = {}; // Maps task_id -> array of task objects sorted by version {id: [task_v0, task_v1], ...}
+var TASK_VERSIONS_MAP = {}; // Maps task_id -> array of task objects sorted by version {task_id: [task_v0, task_v1], ...}
 var UNIQUE_TASK_IDS = []; // Ordered list of unique task IDs found in the dataset
 var CURRENT_TASK_ID = null; // The ID of the task currently being viewed
 var CURRENT_VERSION_INDEX = -1; // The index within TASK_VERSIONS_MAP[CURRENT_TASK_ID] for the viewed version
 var CURRENT_DATASET_NAME = null; // Will likely just be 'dataset' now
-// var TASK_ID_MAP = {}; // Replaced by TASK_VERSIONS_MAP and UNIQUE_TASK_IDS
-// var CURRENT_TASK_INDEX = -1; // Replaced by CURRENT_TASK_ID and CURRENT_VERSION_INDEX
 var CURRENT_TRACE_INDEX = 0; // Index of the currently viewed trace for the active task ID
 var USERNAME = "Anonymous"; // Default username, will be updated from input
 var socket = null; // WebSocket connection object
@@ -31,7 +29,6 @@ var MAX_CELL_SIZE = 100;
 function resetTask(isDatasetLoad = false) { // Changed parameter name for clarity
     // Reset grids and current test pair index
     CURRENT_INPUT_GRID = new Grid(3, 3);
-    // TEST_PAIRS = new Array(); // Replaced by DISPLAYED_TEST_PAIRS
     CURRENT_TEST_PAIR_INDEX = 0;
     $('#task_preview').html(''); // Clear old demonstration pairs
     resetOutputGrid(); // Reset the output grid editor
@@ -76,10 +73,6 @@ function resetTask(isDatasetLoad = false) { // Changed parameter name for clarit
     $('#comment_nav_display').text('Trace -/-');
     $('#prev_comment_btn').prop('disabled', true);
     $('#next_comment_btn').prop('disabled', true);
-    // Keep comment section hidden unless a task is successfully loaded later
-    if (!isDatasetLoad) {
-        $('#comment_section').hide();
-    }
     $('#upvote_btn').prop('disabled', true);
     $('#downvote_btn').prop('disabled', true);
 }
@@ -242,13 +235,13 @@ function loadSingleTask(taskObject, taskName) {
 
 
     // Update task name display using the task's ID if available
-    display_task_name(taskObject.id || taskName); // Prefer task ID for display name
+    display_task_name(taskObject.task_id || taskName); // Prefer task ID for display name
 
     // Update list navigation UI
     updateListNavigationUI();
 
     // Request traces from server for this task
-    const taskId = taskObject.id;
+    const taskId = taskObject.task_id;
     if (socket && socket.connected && taskId) {
         console.log(`Requesting traces for task ID: ${taskId}`);
         socket.emit('request_traces', { task_id: taskId });
@@ -531,7 +524,7 @@ function updateNavigationDisplays() {
 
 function displayTraces() { // Renamed function
     // Find the task object using the CURRENT_TASK_ID
-    const currentTask = LOADED_TASK_LIST.find(task => task.id === CURRENT_TASK_ID);
+    const currentTask = LOADED_TASK_LIST.find(task => task.task_id === CURRENT_TASK_ID);
 
     if (!currentTask) {
         $('#comment_section').hide(); // Hide if no task loaded or found
@@ -603,7 +596,7 @@ function displayTraces() { // Renamed function
 
 function previousTrace() { // Renamed function
     // Check if a task is loaded (implicitly checks CURRENT_TASK_ID)
-    const currentTask = LOADED_TASK_LIST.find(task => task.id === CURRENT_TASK_ID);
+    const currentTask = LOADED_TASK_LIST.find(task => task.task_id === CURRENT_TASK_ID);
     if (!currentTask) return;
 
     if (CURRENT_TRACE_INDEX > 0) {
@@ -614,7 +607,7 @@ function previousTrace() { // Renamed function
 
 function nextTrace() { // Renamed function
     // Check if a task is loaded
-    const currentTask = LOADED_TASK_LIST.find(task => task.id === CURRENT_TASK_ID);
+    const currentTask = LOADED_TASK_LIST.find(task => task.task_id === CURRENT_TASK_ID);
     if (!currentTask) return;
 
     const totalTraces = currentTask.comments ? currentTask.comments.length : 0;
@@ -635,7 +628,7 @@ function downvoteTrace() { // Renamed function
 
 function voteOnTrace(voteChange) { // Renamed function
     // Find the task object using the CURRENT_TASK_ID
-    const currentTask = LOADED_TASK_LIST.find(task => task.id === CURRENT_TASK_ID);
+    const currentTask = LOADED_TASK_LIST.find(task => task.task_id === CURRENT_TASK_ID);
     if (!currentTask || !currentTask.comments || currentTask.comments.length === 0) {
         errorMsg("Cannot vote: No task or traces loaded.");
         return;
@@ -684,12 +677,12 @@ function addTrace() { // Renamed function
      }
 
     // Find the task object using the CURRENT_TASK_ID
-    const currentTask = LOADED_TASK_LIST.find(task => task.id === CURRENT_TASK_ID);
+    const currentTask = LOADED_TASK_LIST.find(task => task.task_id === CURRENT_TASK_ID); // <--- Changed to task.task_id
     if (!currentTask) {
         errorMsg("No task loaded to add a reasoning trace to.");
         return;
     }
-    const taskId = currentTask.id; // Get task ID from the found task object
+    const taskId = currentTask.task_id; // Get task ID from the found task object // <--- Changed to currentTask.task_id
 
     const traceText = $('#new_comment_text').val().trim();
     if (!traceText) {
@@ -722,7 +715,7 @@ function removeCurrentTrace() {
     }
 
     // Find the task object using the CURRENT_TASK_ID
-    const currentTask = LOADED_TASK_LIST.find(task => task.id === CURRENT_TASK_ID);
+    const currentTask = LOADED_TASK_LIST.find(task => task.task_id === CURRENT_TASK_ID); // <--- Changed to task.task_id
     if (!currentTask || !currentTask.comments || currentTask.comments.length === 0) {
         errorMsg("No traces available to remove.");
         return;
@@ -756,7 +749,7 @@ function removeCurrentTrace() {
         console.log(`Emitting remove_trace: trace_id=${originalTrace.trace_id}, username=${USERNAME}`);
         socket.emit('remove_trace', {
             trace_id: originalTrace.trace_id,
-            task_id: currentTask.id,
+            task_id: currentTask.task_id, // <--- Changed to currentTask.task_id
             username: USERNAME
         });
         infoMsg("Removing trace..."); // Give feedback
@@ -892,11 +885,11 @@ function loadDataset(datasetName) {
                     console.warn(`Skipping invalid entry at index ${index} in ${filename}.`);
                     return;
                 }
-                const taskId = task.id;
+                const taskId = task.task_id; // <--- Changed to task.task_id
                 const taskVersion = task.version !== undefined ? parseInt(task.version, 10) : 0; // Default to 0, ensure int
 
                 if (!taskId) {
-                    console.warn(`Task entry at index ${index} in ${filename} is missing an 'id' field. Skipping.`);
+                    console.warn(`Task entry at index ${index} in ${filename} is missing a 'task_id' field. Skipping.`);
                     return;
                 }
                  // Ensure version is a non-negative integer
@@ -1330,7 +1323,7 @@ function connectWebSocket() {
     socket.on('initial_traces', (data) => {
         console.log('Received initial_traces for task', data.task_id, ':', data.traces);
         // Find the task by ID in the loaded list
-        const targetTask = LOADED_TASK_LIST.find(task => task.id === data.task_id);
+        const targetTask = LOADED_TASK_LIST.find(task => task.task_id === data.task_id);
 
         if (targetTask) {
             // Replace local comments with server data
@@ -1349,7 +1342,7 @@ function connectWebSocket() {
     socket.on('new_trace', (newTrace) => {
         console.log('Received new_trace:', newTrace);
         // Find the task in memory to add the trace to
-        const targetTask = LOADED_TASK_LIST.find(task => task.id === newTrace.task_id);
+        const targetTask = LOADED_TASK_LIST.find(task => task.task_id === newTrace.task_id);
         if (targetTask) {
              if (!targetTask.comments) targetTask.comments = [];
              // Avoid adding duplicates based on trace_id
@@ -1373,7 +1366,7 @@ function connectWebSocket() {
     socket.on('trace_updated', (updatedInfo) => {
         console.log('Received trace_updated:', updatedInfo);
         // Find the task and trace in memory and update score
-        const targetTask = LOADED_TASK_LIST.find(task => task.id === updatedInfo.task_id);
+        const targetTask = LOADED_TASK_LIST.find(task => task.task_id === updatedInfo.task_id);
         if (targetTask && targetTask.comments) {
             const targetTrace = targetTask.comments.find(c => c.trace_id === updatedInfo.trace_id);
             if (targetTrace) {
@@ -1398,7 +1391,7 @@ function connectWebSocket() {
     socket.on('trace_removed', (removedInfo) => {
         console.log('Received trace_removed:', removedInfo);
         // Find the task in memory
-        const targetTask = LOADED_TASK_LIST.find(task => task.id === removedInfo.task_id);
+        const targetTask = LOADED_TASK_LIST.find(task => task.task_id === removedInfo.task_id);
         if (targetTask && targetTask.comments) {
             // Find and remove the trace from the task's comments array
             const traceIndex = targetTask.comments.findIndex(c => c.trace_id === removedInfo.trace_id);
@@ -1478,9 +1471,9 @@ function connectWebSocket() {
                     const idSet = new Set();
                     
                     LOADED_TASK_LIST.forEach((task) => {
-                        if (!task || typeof task !== 'object' || !task.id) return;
+                        if (!task || typeof task !== 'object' || !task.task_id) return;
                         
-                        const taskId = task.id;
+                        const taskId = task.task_id;
                         const taskVersion = task.version !== undefined ? parseInt(task.version, 10) : 0;
                         
                         // Initialize comments array
@@ -1571,7 +1564,7 @@ function signVariation() {
 
     // 3. Prepare Payload
     const payload = {
-        original_task_id: ORIGINAL_TASK_DATA.id,
+        original_task_id: ORIGINAL_TASK_DATA.task_id,
         variation_data: { // Send only train and test arrays
             train: DISPLAYED_TASK_DATA.train,
             test: DISPLAYED_TASK_DATA.test
@@ -1695,25 +1688,17 @@ $(document).ready(function () {
     connectWebSocket();
 
     // --- Username Handling (including Cookie) ---
-    // Check for existing username cookie
     const savedUsername = getCookie('username');
     if (savedUsername) {
-        $('#username_input').val(savedUsername);
-        USERNAME = savedUsername; // Update global variable
+        USERNAME = savedUsername;
         console.log("Username loaded from cookie:", USERNAME);
-        $('#username_error').hide(); // Hide error if loaded from cookie
+        // Update any UI element that displays the username, e.g.:
+        // $('#current_user').text(`User: ${USERNAME}`); 
+    } else {
+        // If no username cookie, redirect to main welcome page
+        window.location.href = '/arc2/'; 
+        return; // Stop further execution
     }
-
-    // Update username variable when input changes, hide error on input
-    $('#username_input').on('input change', function() { // Trigger on input and change
-        let name = $(this).val().trim();
-        USERNAME = name || "Anonymous"; // Use 'Anonymous' if empty or only whitespace
-        if (name) {
-            $('#username_error').hide(); // Hide error message when user starts typing
-        }
-        console.log("Username set to:", USERNAME);
-    });
-
 
     // --- Attempt to Restore State from Session Storage ---
     let restoredState = false;
@@ -1732,7 +1717,6 @@ $(document).ready(function () {
                 pendingDatasetName = savedDatasetName;
 
                 // Immediately attempt to load the dataset (which will then load the specific task)
-                // This implicitly hides the welcome screen if successful
                 loadDataset(pendingDatasetName);
                 restoredState = true; // Mark that we attempted restoration
             } else {
@@ -1740,7 +1724,7 @@ $(document).ready(function () {
                 sessionStorage.clear(); // Clear potentially corrupted state
             }
         } else {
-             console.log("No valid saved state found or username missing, showing welcome screen.");
+             console.log("No valid saved state found or username missing.");
              // Clear any partial state just in case
              sessionStorage.removeItem('currentTaskId');
              sessionStorage.removeItem('currentVersionIndex');
@@ -1752,20 +1736,24 @@ $(document).ready(function () {
     }
     // --- End Attempt to Restore State ---
 
+    // --- Initial UI State ---
+    // Show main content areas by default
+    $('#demonstration_examples_view').show();
+    $('#evaluation_view').show();
+    $('#comment_section').show(); // Assuming comments should be visible if a task loads
+    console.log("Showing main content.");
 
-    // --- Initial UI State (Conditional) ---
+    // If state wasn't restored, load the default dataset/task
     if (!restoredState) {
-        // If state wasn't restored (or failed), show the welcome screen
-        $('#welcome_screen').show();
-        $('#demonstration_examples_view').hide();
-        $('#evaluation_view').hide();
-        $('#comment_section').hide();
-        console.log("Showing welcome screen.");
-    } else {
-        // If restoration was attempted, loadDataset will handle showing/hiding
-        console.log("Attempted state restoration, UI visibility handled by loadDataset.");
+        console.log("No state restored, loading default dataset.");
+        loadDataset('dataset');
     }
-    // --- End Initial UI State ---
+
+    // Add event listener for the Back to Main Menu link (now an anchor tag)
+    // No need for JS click handler if it's a simple <a> tag
+    // $('#back_to_main_btn').click(function() {
+    //     window.location.href = '/arc2/';
+    // });
 
 
     // Set initial distance display visibility based on checkbox state

@@ -8,38 +8,21 @@
         <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
         <!-- Add Socket.IO Client Library (removed integrity/crossorigin for simplicity) -->
         <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
-        <script src="static/js/common.js"></script>
-        <script src="static/js/testing_interface.js"></script>
+        <script src="/arc2/static/js/common.js"></script>
+        <script src="/arc2/static/js/testing_interface.js"></script>
 
-        <link rel="stylesheet" type="text/css" href="static/css/common.css">
-        <link rel="stylesheet" type="text/css" href="static/css/testing_interface.css">
+        <link rel="stylesheet" type="text/css" href="/arc2/static/css/common.css">
+        <link rel="stylesheet" type="text/css" href="/arc2/static/css/testing_interface.css">
 
         <link href="https://fonts.googleapis.com/css?family=Open+Sans&display=swap" rel="stylesheet">
 
     </head>
     <body>
         <!-- Modal removed -->
-        <div id="workspace"> <!-- Workspace is now initially visible to show the welcome screen -->
+        <div id="workspace"> <!-- Workspace is now initially visible -->
 
-            <!-- New Welcome Screen -->
-            <div id="welcome_screen">
-                <h2>Welcome to the ARC testing interface</h2>
-                <p>Please enter a username and select a dataset to begin.</p>
-                <div style="margin-bottom: 15px;">
-                    <label for="username_input" style="margin-right: 5px;">Username:</label>
-                    <input type="text" id="username_input" size="20" placeholder="Enter username">
-                    <span id="username_error" style="color: red; margin-left: 10px; display: none;">Username is required!</span>
-                </div>
-                <div>
-                    <label style="margin-right: 10px;">Select Dataset:</label>
-                    <button onclick="loadDataset('dataset')" class="dataset_select_btn">Load Dataset</button> <!-- Changed to single dataset -->
-                    <span id="loaded_dataset_display" style="margin-left: 10px; font-style: italic;"></span>
-                </div>
-            </div>
-            <!-- End New Welcome Screen -->
-
-            <!-- Main content areas initially hidden -->
-            <div id="demonstration_examples_view" style="display: none;">
+            <!-- Main content areas -->
+            <div id="demonstration_examples_view">
                 <div class="text" id="task_demo_header">Task demonstration</div>
                 <div id="task_preview"></div>
             </div>

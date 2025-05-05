@@ -176,8 +176,9 @@ load_trace_data()
 # --- HTTP Routes ---
 @app.route('/')
 def index():
-    """Serves the testing interface directly."""
-    return send_from_directory(APPS_DIR, 'testing_interface.html') # Serve HTML from apps/
+    """Serves the main index.html page."""
+    # Assuming index.html is in the DATA_DIR as per user's hint
+    return send_from_directory(DATA_DIR, 'index.html')
 
 @app.route('/static/<path:filename>')
 def serve_static_files_legacy(filename):
@@ -197,6 +198,18 @@ def serve_static_files_arc2(filename):
 @app.route('/apps/<path:filename>')
 def serve_apps_files(filename):
     """Serves other files from the apps directory if needed (e.g., other HTML)."""
+    # Avoid serving files from static via this route
+    if filename.startswith('static/'):
+        return "Not Found", 404
+    return send_from_directory(APPS_DIR, filename)
+
+from flask import Flask, send_from_directory, jsonify, request # Removed send_file import
+
+# ... (rest of the imports and configuration) ...
+
+@app.route('/arc2/apps/<path:filename>')
+def serve_arc2_apps_files(filename):
+    """Serves files from the apps directory with the /arc2/apps/ prefix for deployment compatibility."""
     # Avoid serving files from static via this route
     if filename.startswith('static/'):
         return "Not Found", 404
