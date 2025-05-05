@@ -1016,7 +1016,7 @@ function visualizeInputGrid() {
 
 function displayOutputGrid(grid) {
     if (!grid || !Array.isArray(grid)) {
-        $('#matrix_output_display').text('Invalid output grid');
+        $('#grid_output').val('Invalid output grid');
         return;
     }
     
@@ -1027,10 +1027,9 @@ function displayOutputGrid(grid) {
     window.currentOutputGrid = outputGrid;
     
     // Clear previous output
-    $('#matrix_output_display').empty();
+    $('#grid_output').val('');
     
-    // Add matrix representation to the left side
-    const matrixText = $('<pre class="matrix_text"></pre>');
+    // Add matrix representation to the text area
     let matrixString = '';
     for (let i = 0; i < outputGrid.height; i++) {
         matrixString += '[';
@@ -1045,8 +1044,7 @@ function displayOutputGrid(grid) {
             matrixString += ',\n';
         }
     }
-    matrixText.text(matrixString);
-    $('#matrix_output_display').append(matrixText);
+    $('#grid_output').val(matrixString);
     
     // Hide the visual output display (it will be shown when the user clicks the visualize button)
     $('#visual_output_display').hide();
@@ -1054,10 +1052,25 @@ function displayOutputGrid(grid) {
 
 // Function to visualize the output grid
 function visualizeOutputGrid() {
-    // Check if we have an output grid to visualize
-    if (!window.currentOutputGrid) {
-        $('#execution_status').text('No output grid to visualize');
-        return;
+    let outputGridObject = window.currentOutputGrid;
+
+    // If window.currentOutputGrid is not set (e.g., manual input), parse from the textarea
+    if (!outputGridObject) {
+        const outputGridText = $('#grid_output').val().trim();
+        if (!outputGridText) {
+            $('#execution_status').text('No output grid to visualize');
+            return;
+        }
+        try {
+            const outputGrid = JSON.parse(outputGridText);
+            if (!Array.isArray(outputGrid) || !outputGrid.every(row => Array.isArray(row))) {
+                throw new Error('Output grid must be a 2D array');
+            }
+            outputGridObject = convertSerializedGridToGridObject(outputGrid);
+        } catch (e) {
+            $('#execution_status').text('Invalid output grid format: ' + e.message);
+            return;
+        }
     }
     
     // Clear previous visualization
@@ -1067,12 +1080,12 @@ function visualizeOutputGrid() {
     const gridContainer = $('<div class="grid_container"></div>');
     
     // Fill the grid with data
-    fillJqGridWithData(gridContainer, window.currentOutputGrid);
+    fillJqGridWithData(gridContainer, outputGridObject);
     
     // Size the cells appropriately
     const containerWidth = $('#visual_output_display').width() || 200;
     const containerHeight = 200; // Fixed height
-    fitCellsToContainer(gridContainer, window.currentOutputGrid.height, window.currentOutputGrid.width, containerHeight, containerWidth);
+    fitCellsToContainer(gridContainer, outputGridObject.height, outputGridObject.width, containerHeight, containerWidth);
     
     // Add visual grid to its container
     $('#visual_output_display').append(gridContainer);

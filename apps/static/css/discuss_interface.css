@@ -156,7 +156,7 @@
 
 /* Chat Area */
 #chat_area {
-    width: 40%; /* Fixed width */
+    width: 37%; /* Decreased width */
     flex-shrink: 0; /* Prevent shrinking */
     display: flex;
     flex-direction: column;
@@ -436,7 +436,7 @@
 
 /* Code Execution Area */
 #code_execution_area {
-    width: 30%; /* Fixed width */
+    width: 33%; /* Increased width */
     flex-shrink: 0; /* Prevent shrinking */
     display: flex;
     flex-direction: column;
@@ -513,8 +513,8 @@
     color: #d4d4d4;
 }
 
-#code_input, #grid_input {
-    min-height: 80px;
+#code_input, #grid_input, #grid_output {
+    min-height: 120px; /* Increased height */
     padding: 10px;
     font-family: monospace;
     background-color: #1e1e1e;
