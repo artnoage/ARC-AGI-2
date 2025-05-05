@@ -306,6 +306,12 @@ function loadTask(taskId, versionIndex = 0) {
         
         // Load chat history for this task
         displayChatHistory();
+        
+        // Populate the input grid field with the first test input if available
+        const testPairs = taskObject.test || [];
+        if (testPairs.length > 0 && testPairs[0].input) {
+            $('#grid_input').val(JSON.stringify(testPairs[0].input, null, 2));
+        }
 
     } catch (e) {
         console.error(`Error processing task ${taskId}:`, e);
@@ -419,18 +425,39 @@ function sendUserMessage() {
         return;
     }
 
-    // Prepare context about the current task
+    // Prepare context about the current task with detailed grid information
     let taskContext = "";
     if (CURRENT_TASK_ID && TASK_VERSIONS_MAP[CURRENT_TASK_ID]) {
         const task = TASK_VERSIONS_MAP[CURRENT_TASK_ID][0]; // Use first version
         taskContext = `Current task ID: ${CURRENT_TASK_ID}\n`;
         
         if (task.train && task.train.length > 0) {
-            taskContext += `The task has ${task.train.length} training examples and ${task.test ? task.test.length : 0} test examples.\n`;
+            taskContext += `The task has ${task.train.length} training examples and ${task.test ? task.test.length : 0} test examples.\n\n`;
             
-            // Add description of the training examples
-            taskContext += "Training examples show input grids and their corresponding output grids. ";
-            taskContext += "The user is trying to understand the pattern or transformation rule that maps inputs to outputs.\n";
+            // Add detailed information about each training example
+            taskContext += "TRAINING EXAMPLES:\n";
+            for (let i = 0; i < task.train.length; i++) {
+                const example = task.train[i];
+                taskContext += `Example ${i+1}:\n`;
+                
+                // Input grid
+                taskContext += "Input grid:\n";
+                taskContext += JSON.stringify(example.input, null, 2) + "\n";
+                
+                // Output grid
+                taskContext += "Output grid:\n";
+                taskContext += JSON.stringify(example.output, null, 2) + "\n\n";
+            }
+            
+            // Add test input information if available (but not the expected output)
+            if (task.test && task.test.length > 0) {
+                taskContext += "TEST INPUTS:\n";
+                for (let i = 0; i < task.test.length; i++) {
+                    const test = task.test[i];
+                    taskContext += `Test ${i+1} input grid:\n`;
+                    taskContext += JSON.stringify(test.input, null, 2) + "\n\n";
+                }
+            }
         }
     } else {
         taskContext = "No specific task is currently selected.\n";
@@ -445,8 +472,22 @@ function sendUserMessage() {
     
     // If we have an API key, use the OpenRouter API
     if (API_KEY) {
+        // Get conversation history for the current task
+        let conversationHistory = [];
+        if (CURRENT_TASK_ID) {
+            const messages = getTaskMessages(CURRENT_TASK_ID);
+            // Only include user and AI messages, not system messages
+            conversationHistory = messages.filter(msg => msg.role === 'user' || msg.role === 'ai')
+                .map(msg => ({
+                    role: msg.role === 'ai' ? 'assistant' : 'user',
+                    content: msg.content
+                }));
+            
+            console.log(`Including ${conversationHistory.length} previous messages in conversation history`);
+        }
+        
         // Use the OpenRouter API to get a response
-        OpenRouterAPI.sendMessage(API_KEY, messageText, taskContext, TEMPERATURE)
+        OpenRouterAPI.sendMessage(API_KEY, messageText, taskContext, TEMPERATURE, conversationHistory)
             .then(response => {
                 removeTypingIndicator();
                 addAiMessage(response);
@@ -482,10 +523,34 @@ function addUserMessage(text) {
 }
 
 function addAiMessage(text) {
+    // Process the text to properly format code blocks
+    let processedText = escapeHtml(text);
+    
+    // Check if there are code blocks (```python ... ```)
+    const codeBlockRegex = /```(?:python)?([\s\S]*?)```/g;
+    processedText = processedText.replace(codeBlockRegex, function(match, codeContent) {
+        // Wrap code in a pre>code block to preserve indentation
+        return `<pre><code>${codeContent}</code></pre>`;
+    });
+    
+    // For text outside of code blocks, replace newlines with <br>
+    // But we need to avoid replacing newlines inside the <pre> tags we just created
+    let finalHtml = '';
+    let inPreTag = false;
+    let segments = processedText.split(/(<pre>[\s\S]*?<\/pre>)/g);
+    
+    segments.forEach(segment => {
+        if (segment.startsWith('<pre>')) {
+            finalHtml += segment;
+        } else {
+            finalHtml += segment.replace(/\n/g, '<br>');
+        }
+    });
+    
     const messageHtml = `
         <div class="ai_message">
             <div class="message_sender">AI Assistant</div>
-            <div class="message_content">${escapeHtml(text).replace(/\n/g, '<br>')}</div>
+            <div class="message_content">${finalHtml}</div>
         </div>
     `;
     $('#chat_messages').append(messageHtml);
@@ -703,10 +768,32 @@ function displayChatHistory() {
             `;
             $('#chat_messages').append(messageHtml);
         } else if (message.role === 'ai') {
+            // Process the text to properly format code blocks
+            let processedText = escapeHtml(message.content);
+            
+            // Check if there are code blocks (```python ... ```)
+            const codeBlockRegex = /```(?:python)?([\s\S]*?)```/g;
+            processedText = processedText.replace(codeBlockRegex, function(match, codeContent) {
+                // Wrap code in a pre>code block to preserve indentation
+                return `<pre><code>${codeContent}</code></pre>`;
+            });
+            
+            // For text outside of code blocks, replace newlines with <br>
+            let finalHtml = '';
+            let segments = processedText.split(/(<pre>[\s\S]*?<\/pre>)/g);
+            
+            segments.forEach(segment => {
+                if (segment.startsWith('<pre>')) {
+                    finalHtml += segment;
+                } else {
+                    finalHtml += segment.replace(/\n/g, '<br>');
+                }
+            });
+            
             const messageHtml = `
                 <div class="ai_message">
                     <div class="message_sender">AI Assistant</div>
-                    <div class="message_content">${escapeHtml(message.content).replace(/\n/g, '<br>')}</div>
+                    <div class="message_content">${finalHtml}</div>
                 </div>
             `;
             $('#chat_messages').append(messageHtml);

@@ -11,9 +11,14 @@ This project involves adapting the original ARC-AGI dataset and interface for ad
 *   Introduce a distance metric to guide users during task solving.
 *   Define a data structure (`data/nature_of_data.md`) to store tasks, variations, traces, and contributions.
 *   Create a separate discussion interface (`apps/discuss_interface.html`) for AI-assisted task analysis and discussion.
+    *   Improved layout for better visibility of examples and chat area.
+    *   Implemented automatic population of the input grid with the first test input.
+    *   Added code block formatting to preserve indentation in AI messages.
 *   Integrate the discussion interface with a language model API (OpenRouter) for AI responses.
+    *   Ensured full conversation history is sent to the AI model for better context.
 *   Add features to the discussion interface for controlling API parameters (e.g., temperature).
 *   Implement a Python code execution environment within the discussion interface for testing code solutions.
+    *   Provided guidance in the code placeholder on handling the 'shape' attribute error.
 
 **Phase 2: Synthetic Data Generation & Verification**
 *   Develop tools (`synthetic_data_generators/`) for generating synthetic data, including reasoning traces and code solutions, from language models.

@@ -63,7 +63,7 @@
 
 /* Task Area */
 #task_area {
-    width: 40%;
+    width: 45%;
     display: flex;
     flex-direction: column;
     border-right: 1px solid #4a4a4a;
@@ -155,7 +155,7 @@
 
 /* Chat Area */
 #chat_area {
-    width: 60%;
+    width: 55%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -292,19 +292,37 @@
     margin-bottom: 15px;
     padding: 10px;
     border-radius: 5px;
-    max-width: 80%;
+    max-width: 95%;
+}
+
+/* Code block styling */
+.message_content pre {
+    background-color: #1e1e1e;
+    border: 1px solid #555;
+    border-radius: 3px;
+    padding: 10px;
+    margin: 10px 0;
+    overflow-x: auto;
+    white-space: pre;
+    font-family: monospace;
+}
+
+.message_content code {
+    font-family: monospace;
+    color: #d4d4d4;
+    white-space: pre;
 }
 
 .user_message {
     background-color: #2a5278;
-    margin-left: auto;
-    border-bottom-right-radius: 0;
+    margin-left: 0;
+    border-bottom-left-radius: 0;
     color: #d4d4d4;
 }
 
 .ai_message {
     background-color: #3c3c3c;
-    margin-right: auto;
+    margin-left: 0;
     border-bottom-left-radius: 0;
     color: #d4d4d4;
 }
@@ -381,7 +399,7 @@
 
 /* Code Execution Area */
 #code_execution_area {
-    width: 70%;
+    width: 45%;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -408,7 +426,7 @@
 }
 
 #code_input, #grid_input {
-    min-height: 120px;
+    min-height: 80px;
     padding: 10px;
     font-family: monospace;
     background-color: #1e1e1e;
@@ -419,7 +437,7 @@
 }
 
 #code_input {
-    min-height: 200px;
+    min-height: 150px;
 }
 
 #code_execution_controls {
@@ -455,6 +473,8 @@
     background-color: #1e1e1e;
     border: 1px solid #555;
     border-radius: 3px;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 #code_output_container label {
@@ -467,7 +487,7 @@
     flex-direction: column;
     gap: 10px;
     padding: 10px;
-    min-height: 50px;
+    min-height: 100px;
 }
 
 .output_display_container {

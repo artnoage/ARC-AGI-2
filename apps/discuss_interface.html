@@ -65,8 +65,17 @@
                         <div id="code_input_container">
                             <label for="code_input">Python Code:</label>
                             <textarea id="code_input" placeholder="def solve_task(input_grid):
-    # Your code here
+    # IMPORTANT: Always name the main function 'solve_task'
     # input_grid is a 2D list (list of lists)
+    # Convert to numpy array if you need shape attribute
+    # import numpy as np
+    # input_array = np.array(input_grid)
+    # height, width = input_array.shape
+    
+    # Or calculate dimensions directly from the list:
+    height = len(input_grid)
+    width = len(input_grid[0]) if height > 0 else 0
+    
     # Return a 2D list representing the output grid
     return input_grid"></textarea>
                         </div>

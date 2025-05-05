@@ -54,9 +54,10 @@ function getSelectedModel() {
  * @param {string} userMessage - User's message
  * @param {string} taskContext - Context about the current task
  * @param {number} temperature - Temperature parameter for controlling randomness (0.0-1.0)
+ * @param {Array} conversationHistory - Previous messages in the conversation
  * @returns {Promise} Promise that resolves with the AI response
  */
-async function sendMessageToOpenRouter(apiKey, userMessage, taskContext, temperature = 0.7) {
+async function sendMessageToOpenRouter(apiKey, userMessage, taskContext, temperature = 0.7, conversationHistory = []) {
     if (!apiKey) {
         throw new Error("API key is required");
     }
@@ -66,19 +67,28 @@ async function sendMessageToOpenRouter(apiKey, userMessage, taskContext, tempera
         throw new Error("Invalid model selected");
     }
 
+    // Start with the system message
     const messages = [
         {
             role: "system",
             content: "You are an AI assistant helping with Abstraction and Reasoning Corpus (ARC) tasks. " +
                      "Your goal is to help the user understand patterns, transformations, and reasoning strategies " +
                      "for solving ARC tasks. Be clear, helpful, and provide step-by-step explanations when appropriate. " +
+                     "IMPORTANT: When providing code solutions, always name the main function 'solve_task'. " +
                      "Here is the context for the current task: " + taskContext
-        },
-        {
-            role: "user",
-            content: userMessage
         }
     ];
+    
+    // Add conversation history if available
+    if (conversationHistory && conversationHistory.length > 0) {
+        messages.push(...conversationHistory);
+    }
+    
+    // Add the current user message
+    messages.push({
+        role: "user",
+        content: userMessage
+    });
 
     try {
         console.log(`Sending message to OpenRouter using model: ${model.id}`);

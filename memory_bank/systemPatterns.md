@@ -31,7 +31,7 @@ graph TD
 ```
 *   Two client-side web applications allow users to interact with ARC tasks:
     *   The testing interface (`apps/testing_interface.html`) for task solving and synthetic data creation.
-    *   The discussion interface (`apps/discuss_interface.html`) for AI-assisted task analysis and discussion, including a Python code execution environment.
+*   The discussion interface (`apps/discuss_interface.html`) for AI-assisted task analysis and discussion, including a Python code execution environment. This interface now features an improved layout for better visibility of examples and chat, automatic population of the input grid with the first test input, and code block formatting to preserve indentation in AI messages.
 *   User actions in the testing interface (solving, transforming, adding traces) generate new data stored alongside original tasks, often as enriched JSON files.
 *   The discussion interface interacts with a server-side endpoint (`/arc2/execute_code`) for executing Python code in a sandbox environment, utilizing the `utilities.code_execution.py` utility.
 
