@@ -14,6 +14,7 @@ The current focus is on completing and testing the synthetic data generation and
   * Added "Go to Task #" functionality to the Discussion Interface
   * Moved all navigation controls to a dedicated "Navigation" panel in the bottom section
   * Removed duplicate navigation controls from the top section to give more space for task display
+  * Moved task index display from the top section to the Navigation panel
   * Repositioned execution buttons for better space utilization
   * Added task name display in the header that updates when task changes
   * Fixed horizontal scrolling in code execution panel to preserve header position

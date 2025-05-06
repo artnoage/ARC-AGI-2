@@ -32,9 +32,6 @@
                     <!-- Task Demonstration Area -->
                     <div id="task_area">
                         <div class="section_header">Task Demonstration</div>
-                        <div id="task_index_display" style="padding: 10px; background-color: #3c3c3c; border-bottom: 1px solid #4a4a4a; text-align: center;">
-                            Task 1/1
-                        </div>
                         <div id="task_preview"></div>
                     </div>
 
@@ -142,11 +139,7 @@
                     <div id="navigation_panel">
                         <div class="section_header">Navigation</div>
                         <div id="navigation_controls_panel">
-                            <div class="button_row">
-                                <button id="random_task_btn">Random Task</button>
-                                <button id="prev_task_btn">< Prev</button>
-                                <button id="next_task_btn">Next ></button>
-                            </div>
+                            <!-- Removed Random Task button and moved task navigation buttons -->
                             <div class="settings_row">
                                 <div class="settings_group compact">
                                     <label for="task_id_input">Go to ID:</label>
@@ -157,6 +150,20 @@
                                     <label for="task_number_input">Go to #:</label>
                                     <input type="number" id="task_number_input" size="4" min="1" placeholder="#">
                                     <button id="goto_task_number_btn">Go</button>
+                                </div>
+                            </div>
+                            <div class="settings_row">
+                                <div class="navigation_display_row">
+                                    <div id="task_index_display" style="display: flex; align-items: center; padding: 5px; background-color: #2d2d2d; border-radius: 3px; flex: 1; justify-content: center;">
+                                        <button id="prev_task_btn" disabled>< Prev</button>
+                                        <span style="margin: 0 5px;">Task 1/1</span>
+                                        <button id="next_task_btn" disabled>Next ></button>
+                                    </div>
+                                    <div id="version_navigation" style="display: flex; align-items: center; padding: 5px; background-color: #2d2d2d; border-radius: 3px; flex: 1; justify-content: center; margin-left: 5px;">
+                                        <button id="prev_version_btn" disabled>< Prev</button>
+                                        <span id="version_display" style="margin: 0 5px;">Ver -/-</span>
+                                        <button id="next_version_btn" disabled>Next ></button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

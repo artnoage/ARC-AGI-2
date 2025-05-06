@@ -1,9 +1,12 @@
 // Global variables
 var USERNAME = "Anonymous";
 var CURRENT_TASK_ID = null;
+var CURRENT_VERSION_INDEX = 0; // Track the current version index
 var LOADED_TASK_LIST = [];
 var UNIQUE_TASK_IDS = [];
 var TASK_VERSIONS_MAP = {};
+var ORIGINAL_TASK_DATA = null; // Original task data
+var DISPLAYED_TASK_DATA = null; // Potentially transformed task data
 var socket = null;
 var API_KEY = null;
 var CHAT_MEMORY = {}; // Memory storage for chat messages
@@ -16,6 +19,15 @@ $(document).ready(function() {
     
     // Initialize chat memory
     initChatMemory();
+    
+    // Version navigation buttons
+    $('#prev_version_btn').click(function() {
+        previousVersion();
+    });
+    
+    $('#next_version_btn').click(function() {
+        nextVersion();
+    });
 
     // --- Username Handling (including Cookie) ---
     const savedUsername = getCookie('username');
@@ -304,6 +316,9 @@ function loadTask(taskId, versionIndex = 0) {
 
     const taskObject = TASK_VERSIONS_MAP[taskId][versionIndex];
     CURRENT_TASK_ID = taskId;
+    CURRENT_VERSION_INDEX = versionIndex;
+    ORIGINAL_TASK_DATA = JSON.parse(JSON.stringify(taskObject)); // Store a deep copy
+    DISPLAYED_TASK_DATA = ORIGINAL_TASK_DATA; // Initially, displayed data is the same as original
 
     try {
         // Clear previous task preview
@@ -323,12 +338,17 @@ function loadTask(taskId, versionIndex = 0) {
         // Update task navigation
         updateTaskNavigation();
         
+        // Update version navigation
+        updateVersionNavigation();
+        
         // Update task name in header
         const uniqueIndex = UNIQUE_TASK_IDS.indexOf(taskId);
         if (uniqueIndex !== -1) {
-            $('#current_task_name').text(`Task #${uniqueIndex + 1} (ID: ${taskId})`);
+            const versionText = taskObject.version !== undefined ? ` (Version ${taskObject.version})` : '';
+            $('#current_task_name').text(`Task #${uniqueIndex + 1} (ID: ${taskId})${versionText}`);
         } else {
-            $('#current_task_name').text(`Task ID: ${taskId}`);
+            const versionText = taskObject.version !== undefined ? ` (Version ${taskObject.version})` : '';
+            $('#current_task_name').text(`Task ID: ${taskId}${versionText}`);
         }
         
         // Load chat history for this task
@@ -343,6 +363,44 @@ function loadTask(taskId, versionIndex = 0) {
     } catch (e) {
         console.error(`Error processing task ${taskId}:`, e);
         addSystemMessage(`Error loading task ${taskId}: ${e.message}`);
+    }
+}
+
+// Update version navigation UI
+function updateVersionNavigation() {
+    if (CURRENT_TASK_ID && TASK_VERSIONS_MAP[CURRENT_TASK_ID]) {
+        const versions = TASK_VERSIONS_MAP[CURRENT_TASK_ID];
+        const totalVersions = versions.length;
+        
+        // Always show version navigation, even for single versions
+        $('#version_display').text(`Ver ${CURRENT_VERSION_INDEX + 1}/${totalVersions}`);
+        
+        // Enable/disable navigation buttons based on current index
+        $('#prev_version_btn').prop('disabled', CURRENT_VERSION_INDEX === 0);
+        $('#next_version_btn').prop('disabled', CURRENT_VERSION_INDEX === totalVersions - 1);
+    } else {
+        // If no task is loaded, show placeholder
+        $('#version_display').text(`Ver -/-`);
+        $('#prev_version_btn').prop('disabled', true);
+        $('#next_version_btn').prop('disabled', true);
+    }
+}
+
+// Version navigation functions
+function previousVersion() {
+    if (CURRENT_TASK_ID && CURRENT_VERSION_INDEX > 0) {
+        loadTask(CURRENT_TASK_ID, CURRENT_VERSION_INDEX - 1);
+        addSystemMessage(`Navigated to previous version of task ${CURRENT_TASK_ID}`);
+    }
+}
+
+function nextVersion() {
+    if (CURRENT_TASK_ID && TASK_VERSIONS_MAP[CURRENT_TASK_ID]) {
+        const totalVersions = TASK_VERSIONS_MAP[CURRENT_TASK_ID].length;
+        if (CURRENT_VERSION_INDEX < totalVersions - 1) {
+            loadTask(CURRENT_TASK_ID, CURRENT_VERSION_INDEX + 1);
+            addSystemMessage(`Navigated to next version of task ${CURRENT_TASK_ID}`);
+        }
     }
 }
 
@@ -372,7 +430,7 @@ function updateTaskNavigation() {
         const uniqueIndex = UNIQUE_TASK_IDS.indexOf(CURRENT_TASK_ID);
         if (uniqueIndex !== -1) {
             // Update task index display
-            $('#task_index_display').text(`Task ${uniqueIndex + 1}/${UNIQUE_TASK_IDS.length}`);
+            $('#task_index_display span').text(`Task ${uniqueIndex + 1}/${UNIQUE_TASK_IDS.length}`);
             
             // Update navigation panel buttons
             const isFirst = uniqueIndex === 0;
@@ -384,7 +442,7 @@ function updateTaskNavigation() {
         }
     } else {
         // No tasks loaded
-        $('#task_index_display').text(`No tasks loaded`);
+        $('#task_index_display span').text(`No tasks loaded`);
         
         // Disable navigation buttons
         $('#navigation_panel #prev_task_btn').prop('disabled', true);
@@ -506,8 +564,14 @@ function sendUserMessage() {
     // Prepare context about the current task with detailed grid information
     let taskContext = "";
     if (CURRENT_TASK_ID && TASK_VERSIONS_MAP[CURRENT_TASK_ID]) {
-        const task = TASK_VERSIONS_MAP[CURRENT_TASK_ID][0]; // Use first version
+        // Use the displayed task data (which could be a variation) instead of always using the first version
+        const task = DISPLAYED_TASK_DATA || TASK_VERSIONS_MAP[CURRENT_TASK_ID][CURRENT_VERSION_INDEX];
+        const isVariation = CURRENT_VERSION_INDEX > 0;
+        
         taskContext = `Current task ID: ${CURRENT_TASK_ID}\n`;
+        if (isVariation) {
+            taskContext += `IMPORTANT: This is version ${task.version} of the task (a variation of the original).\n`;
+        }
         
         if (task.train && task.train.length > 0) {
             taskContext += `The task has ${task.train.length} training examples and ${task.test ? task.test.length : 0} test examples.\n\n`;
