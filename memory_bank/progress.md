@@ -76,26 +76,6 @@
   * Solved/unsolved task ID tracking
   * Task filtering via `--task_ids` argument
 
-## What's left to build
-
-**Synthetic Data Generation & Verification**
-* Run code verification script on generated solutions
-* Analyze verification results and code quality
-* Consider additional data generation runs with different models
-* Update `.gitignore` to exclude synthetic data directory
-* Potentially refine agent prompting based on results
-
-**LLM Benchmarking**
-* Run comprehensive benchmarks with multiple models
-* Compare code-based vs. direct answer approaches
-* Analyze performance patterns across different task types
-* Consider refinements to benchmarking process
-
-**Synthetic Data Creation Interfaces**
-* Consider additional enhancements (markdown rendering, etc.)
-* Conduct final testing of complete workflow
-* Update documentation
-
 ## Current status
 
 **Synthetic Data Creation Interfaces** are complete and functional, with all planned features implemented and tested.
