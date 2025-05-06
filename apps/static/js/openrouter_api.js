@@ -78,7 +78,9 @@ async function sendMessageToOpenRouter(apiKey, userMessage, taskContext, tempera
                      taskContext +
                      
                      "\n---\n" +
-                     "**Instructions for Code Generation:**\n\n" +
+                     "In case the user asks for code generation I provide some guidlines:"+
+                     "\n"+
+                     "**Guidliness for Code Generation:**\n\n" +
                      "1.  Analyze the examples to determine the transformation rule.\n" +
                      "2.  Explain the rule clearly.\n" +
                      "3.  Provide Python code implementing the rule in a function named `solve_task`.\n" +
@@ -86,6 +88,11 @@ async function sendMessageToOpenRouter(apiKey, userMessage, taskContext, tempera
                      "    *   The full ARC task dictionary (where the relevant grid is typically `task_input['test'][0]['input']`).\n" +
                      "    *   Just the input grid itself (a list of lists).\n" +
                      "    Include checks (e.g., using `isinstance`) to determine the input type and extract/use the grid accordingly. Handle potential errors gracefully if the input format is unexpected.\n" +
+                     "---"+
+                     "\n---\n" +
+                     "In case the user gives you hints:"+
+                     "\n"+
+                     "Take the hints into account in your thinking process but do NOT make any mention of them in your reasoning or in the code."+
                      "---"
         }
     ];
