@@ -12,7 +12,8 @@ The current focus is on completing and testing the synthetic data generation and
 * Fixed logout redirection to the root URL (`/`)
 * Improved discussion interface layout and space allocation:
   * Added "Go to Task #" functionality to the Discussion Interface
-  * Optimized navigation controls layout with side-by-side arrangement
+  * Moved all navigation controls to a dedicated "Navigation" panel in the bottom section
+  * Removed duplicate navigation controls from the top section to give more space for task display
   * Repositioned execution buttons for better space utilization
   * Added task name display in the header that updates when task changes
   * Fixed horizontal scrolling in code execution panel to preserve header position

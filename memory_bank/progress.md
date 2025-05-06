@@ -16,7 +16,8 @@
   * Full conversation history context
 * Navigation improvements in discussion interface:
   * "Go to Task #" functionality added
-  * Optimized layout with side-by-side navigation controls
+  * Moved all navigation controls to a dedicated "Navigation" panel in the bottom section
+  * Removed duplicate navigation controls from the top section to give more space for task display
   * Repositioned execution buttons for better space utilization
   * Added task name display in header that updates when task changes
   * Fixed horizontal scrolling in code execution panel to preserve header position

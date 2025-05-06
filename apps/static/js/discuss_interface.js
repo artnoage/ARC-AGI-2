@@ -113,37 +113,37 @@ $(document).ready(function() {
         }
     });
 
-    // Task navigation buttons - handle both in task area and bottom navigation panel
-    $('#random_task_btn, #navigation_panel #random_task_btn').click(function() {
+    // Task navigation buttons in the navigation panel
+    $('#navigation_panel #random_task_btn').click(function() {
         randomTask();
     });
 
-    $('#prev_task_btn, #navigation_panel #prev_task_btn').click(function() {
+    $('#navigation_panel #prev_task_btn').click(function() {
         previousTask();
     });
 
-    $('#next_task_btn, #navigation_panel #next_task_btn').click(function() {
+    $('#navigation_panel #next_task_btn').click(function() {
         nextTask();
     });
 
-    $('#goto_task_btn, #navigation_panel #goto_task_btn').click(function() {
+    $('#navigation_panel #goto_task_btn').click(function() {
         gotoTaskById();
     });
 
-    // Enter key for task ID input - handle both in task area and bottom navigation panel
-    $('#task_id_input, #navigation_panel #task_id_input').keydown(function(event) {
+    // Enter key for task ID input in the navigation panel
+    $('#navigation_panel #task_id_input').keydown(function(event) {
         if (event.keyCode === 13) {
             gotoTaskById();
         }
     });
     
-    // Go to task by number button - handle both in task area and bottom navigation panel
-    $('#goto_task_number_btn, #navigation_panel #goto_task_number_btn').click(function() {
+    // Go to task by number button in the navigation panel
+    $('#navigation_panel #goto_task_number_btn').click(function() {
         gotoTaskByNumber();
     });
     
-    // Enter key for task number input - handle both in task area and bottom navigation panel
-    $('#task_number_input, #navigation_panel #task_number_input').keydown(function(event) {
+    // Enter key for task number input in the navigation panel
+    $('#navigation_panel #task_number_input').keydown(function(event) {
         if (event.keyCode === 13) {
             gotoTaskByNumber();
         }
@@ -374,15 +374,11 @@ function updateTaskNavigation() {
             // Update task index display
             $('#task_index_display').text(`Task ${uniqueIndex + 1}/${UNIQUE_TASK_IDS.length}`);
             
-            // Update buttons in both the main navigation and bottom panel
+            // Update navigation panel buttons
             const isFirst = uniqueIndex === 0;
             const isLast = uniqueIndex === UNIQUE_TASK_IDS.length - 1;
             
-            // Main navigation buttons
-            $('#prev_task_btn').prop('disabled', isFirst);
-            $('#next_task_btn').prop('disabled', isLast);
-            
-            // Bottom panel navigation buttons
+            // Navigation panel buttons
             $('#navigation_panel #prev_task_btn').prop('disabled', isFirst);
             $('#navigation_panel #next_task_btn').prop('disabled', isLast);
         }
@@ -390,9 +386,9 @@ function updateTaskNavigation() {
         // No tasks loaded
         $('#task_index_display').text(`No tasks loaded`);
         
-        // Disable all navigation buttons
-        $('#prev_task_btn, #navigation_panel #prev_task_btn').prop('disabled', true);
-        $('#next_task_btn, #navigation_panel #next_task_btn').prop('disabled', true);
+        // Disable navigation buttons
+        $('#navigation_panel #prev_task_btn').prop('disabled', true);
+        $('#navigation_panel #next_task_btn').prop('disabled', true);
     }
 }
 
@@ -435,8 +431,8 @@ function nextTask() {
 }
 
 function gotoTaskById() {
-    // Get task ID from either input field (main navigation or bottom panel)
-    const taskIdToFind = $('#task_id_input').val().trim() || $('#navigation_panel #task_id_input').val().trim();
+    // Get task ID from the navigation panel input field
+    const taskIdToFind = $('#navigation_panel #task_id_input').val().trim();
     if (!taskIdToFind) {
         addSystemMessage("Please enter a Task ID.");
         return;
@@ -444,8 +440,7 @@ function gotoTaskById() {
 
     if (TASK_VERSIONS_MAP.hasOwnProperty(taskIdToFind)) {
         loadTask(taskIdToFind, 0);
-        // Clear both input fields
-        $('#task_id_input').val('');
+        // Clear input field
         $('#navigation_panel #task_id_input').val('');
     } else {
         addSystemMessage(`Task ID '${taskIdToFind}' not found.`);
@@ -453,8 +448,8 @@ function gotoTaskById() {
 }
 
 function gotoTaskByNumber() {
-    // Get task number from either input field (main navigation or bottom panel)
-    const taskNumberStr = $('#task_number_input').val().trim() || $('#navigation_panel #task_number_input').val().trim();
+    // Get task number from the navigation panel input field
+    const taskNumberStr = $('#navigation_panel #task_number_input').val().trim();
     if (!taskNumberStr) {
         addSystemMessage("Please enter a Task Number.");
         return;
@@ -486,8 +481,7 @@ function gotoTaskByNumber() {
     } else {
         loadTask(taskIdToGo, 0); // Load first version
         addSystemMessage(`Navigated to Task #${taskNumber} (ID: ${taskIdToGo})`);
-        // Clear both input fields
-        $('#task_number_input').val('');
+        // Clear input field
         $('#navigation_panel #task_number_input').val('');
     }
 }
