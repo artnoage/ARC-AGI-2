@@ -21,6 +21,13 @@ The current focus is on completing and testing the synthetic data generation and
   * Redesigned settings panel to be more compact (70% height reduction)
   * Restructured settings panel into three vertical columns ("API Settings", "Navigation", and "Execution Controls") with visual separators for improved layout
   * Made sliders shorter to fit better in the compact panels
+  * **Added variation navigation similar to the testing interface**
+  * **Made version navigation always visible in the navigation panel**
+  * **Removed the "Random Task" task navigation button**
+  * **Integrated task navigation buttons (Prev/Next) with the task numbering display**
+  * Removed "Go to ID" and "Go to #" inputs from the navigation panel.
+  * Added a "Task Data Source" dropdown with options: "Use original", "Use variation", "Use both".
+  * Updated JavaScript to use the selected data source to determine which task examples (original, variation, or combined) are sent to the LLM.
 * Enhanced OpenRouter API integration:
   * Added model selector dropdown
   * Implemented temperature slider for controlling AI responses
@@ -48,7 +55,7 @@ The current focus is on completing and testing the synthetic data generation and
 **LLM Benchmarking**
 * Created two benchmark scripts:
   * `run_code_benchmark.py` for code-based evaluation
-  * `run_direct_benchmark.py` for direct answer evaluation
+  * `benchmark/run_direct_benchmark.py` for direct answer evaluation
 * Added "best-of" functionality to generate multiple solutions per task
 * Fixed issues with multiple attempt processing
 * Added solved/unsolved task IDs to benchmark metadata
@@ -68,7 +75,6 @@ The current focus is on completing and testing the synthetic data generation and
 * Analyze performance patterns across different task types
 
 **Synthetic Data Creation Interfaces**
-* Consider additional enhancements (markdown rendering, etc.)
 * Conduct final testing of complete workflow
 * Update documentation
 
@@ -81,7 +87,7 @@ The current focus is on completing and testing the synthetic data generation and
 
 **Deployment Considerations**
 * All routes use `/arc2/` prefix for deployment compatibility
-* WebSocket connections use default `/socket.io/` path, relying on reverse proxy configuration
+* WebSocket connections when deployed under the `/arc2/` URL prefix require specific reverse proxy configuration
 
 **Data Management**
 * Dataset loaded from `/arc2/static/dataset.json`

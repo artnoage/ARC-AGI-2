@@ -24,6 +24,11 @@
   * Redesigned settings panel with compact layout (70% height reduction)
   * Restructured settings panel into three vertical columns ("API Settings", "Navigation", and "Execution Controls")
   * Made sliders shorter to fit better in the compact panels
+  * **Added variation navigation similar to the testing interface**
+  * **Made version navigation always visible in the navigation panel**
+  * **Removed the "Random Task" task navigation button**
+  * **Integrated task navigation buttons (Prev/Next) with the task numbering display**
+  * Implemented "Task Data Source" dropdown in the navigation panel, allowing selection of "Use original," "Use variation," or "Use both" to control the task examples sent to the LLM.
 * Chat memory functionality:
   * Username and task-specific storage
   * Persistent conversations

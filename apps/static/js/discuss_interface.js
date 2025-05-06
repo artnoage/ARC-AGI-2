@@ -112,6 +112,19 @@ $(document).ready(function() {
         $('#temperature_value').text(tempValue.toFixed(1));
     }
 
+    // Task Data Source Selector
+    $('#task_data_source_select').change(function() {
+        const selectedDataSource = $(this).val();
+        localStorage.setItem('task_data_source_select', selectedDataSource);
+        console.log(`Task data source changed to: ${selectedDataSource}`);
+    });
+
+    // Load saved task data source selection
+    const savedDataSource = localStorage.getItem('task_data_source_select');
+    if (savedDataSource) {
+        $('#task_data_source_select').val(savedDataSource);
+    }
+
     // Send message button
     $('#send_message_btn').click(function() {
         sendUserMessage();
@@ -561,43 +574,71 @@ function sendUserMessage() {
         return;
     }
 
-    // Prepare context about the current task with detailed grid information
+    // Prepare context about the current task based on selected data source
+    const selectedDataSource = $('#task_data_source_select').val();
     let taskContext = "";
+
     if (CURRENT_TASK_ID && TASK_VERSIONS_MAP[CURRENT_TASK_ID]) {
-        // Use the displayed task data (which could be a variation) instead of always using the first version
-        const task = DISPLAYED_TASK_DATA || TASK_VERSIONS_MAP[CURRENT_TASK_ID][CURRENT_VERSION_INDEX];
-        const isVariation = CURRENT_VERSION_INDEX > 0;
-        
+        const originalTaskData = TASK_VERSIONS_MAP[CURRENT_TASK_ID][0];
+        const currentVariationData = TASK_VERSIONS_MAP[CURRENT_TASK_ID][CURRENT_VERSION_INDEX];
+
         taskContext = `Current task ID: ${CURRENT_TASK_ID}\n`;
-        if (isVariation) {
-            taskContext += `IMPORTANT: This is version ${task.version} of the task (a variation of the original).\n`;
+        let trainExamplesForContext = [];
+        let testExamplesForContext = []; // Will hold only inputs
+
+        if (selectedDataSource === "original") {
+            taskContext += `Data source: Original task (Version ${originalTaskData.version}).\n`;
+            trainExamplesForContext = originalTaskData.train ? originalTaskData.train.slice() : [];
+            if (originalTaskData.test) {
+                testExamplesForContext = originalTaskData.test.map(t => ({ input: t.input }));
+            }
+        } else if (selectedDataSource === "variation") {
+            taskContext += `Data source: Current variation (Version ${currentVariationData.version}).\n`;
+            trainExamplesForContext = currentVariationData.train ? currentVariationData.train.slice() : [];
+            if (currentVariationData.test) {
+                testExamplesForContext = currentVariationData.test.map(t => ({ input: t.input }));
+            }
+        } else { // selectedDataSource === "both"
+            taskContext += `Data source: Combined (Original Task Version ${originalTaskData.version} + Current Variation Version ${currentVariationData.version}).\n`;
+            // Combine train examples
+            trainExamplesForContext = originalTaskData.train ? originalTaskData.train.slice() : [];
+            if (CURRENT_VERSION_INDEX > 0 && currentVariationData.train) { // Only add if current variation is not the original
+                currentVariationData.train.forEach(varTrainEx => {
+                    // Simple concatenation.
+                    trainExamplesForContext.push(varTrainEx);
+                });
+            }
+            // Test examples from the current variation
+            if (currentVariationData.test) {
+                testExamplesForContext = currentVariationData.test.map(t => ({ input: t.input }));
+            }
         }
-        
-        if (task.train && task.train.length > 0) {
-            taskContext += `The task has ${task.train.length} training examples and ${task.test ? task.test.length : 0} test examples.\n\n`;
+
+        if (trainExamplesForContext.length > 0) {
+            taskContext += `The task has ${trainExamplesForContext.length} training examples and ${testExamplesForContext.length} test examples.\n\n`;
             
-            // Add detailed information about each training example
             taskContext += "TRAINING EXAMPLES:\n";
-            for (let i = 0; i < task.train.length; i++) {
-                const example = task.train[i];
+            for (let i = 0; i < trainExamplesForContext.length; i++) {
+                const example = trainExamplesForContext[i];
                 taskContext += `Example ${i+1}:\n`;
-                
-                // Input grid
-                taskContext += "Input: ";
-                taskContext += JSON.stringify(example.input) + "\n";
-                
-                // Output grid
-                taskContext += "Output: ";
-                taskContext += JSON.stringify(example.output) + "\n\n";
+                taskContext += "Input: " + JSON.stringify(example.input) + "\n";
+                taskContext += "Output: " + JSON.stringify(example.output) + "\n\n";
             }
             
-            // Add test input information if available (but not the expected output)
-            if (task.test && task.test.length > 0) {
+            if (testExamplesForContext.length > 0) {
                 taskContext += "TEST INPUTS:\n";
-                for (let i = 0; i < task.test.length; i++) {
-                    const test = task.test[i];
-                    taskContext += `Test ${i+1} input grid: `;
-                    taskContext += JSON.stringify(test.input) + "\n\n";
+                for (let i = 0; i < testExamplesForContext.length; i++) {
+                    const testInput = testExamplesForContext[i].input; 
+                    taskContext += `Test ${i+1} input grid: ` + JSON.stringify(testInput) + "\n\n";
+                }
+            }
+        } else {
+             taskContext += `The selected task/variation has no training examples.\n`;
+             if (testExamplesForContext.length > 0) {
+                taskContext += "TEST INPUTS:\n";
+                for (let i = 0; i < testExamplesForContext.length; i++) {
+                    const testInput = testExamplesForContext[i].input;
+                    taskContext += `Test ${i+1} input grid: ` + JSON.stringify(testInput) + "\n\n";
                 }
             }
         }
