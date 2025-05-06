@@ -232,14 +232,21 @@
     align-items: center;
 }
 
-#execution_controls button {
+.button_row {
+    display: flex;
+    gap: 10px;
     width: 100%;
-    padding: 10px 15px;
+}
+
+#execution_controls button {
+    flex: 1;
+    padding: 8px 10px;
     border: none;
     border-radius: 3px;
     cursor: pointer;
     font-weight: bold;
     text-align: center;
+    font-size: 0.9em;
 }
 
 #visualize_input_btn, #visualize_output_btn {
@@ -267,11 +274,21 @@
     padding: 15px;
 }
 
+.settings_row {
+    display: flex;
+    gap: 15px;
+    width: 100%;
+}
+
 .settings_group {
     display: flex;
     align-items: center;
     gap: 10px;
     margin-bottom: 10px;
+}
+
+.settings_group.compact {
+    flex: 1;
 }
 
 #api_form label {
@@ -292,15 +309,16 @@
 
 #model_selector {
     flex: 1;
-    padding: 8px 10px;
+    padding: 6px 8px;
     border: 1px solid #555;
     border-radius: 3px;
     background-color: #2d2d2d;
     color: #d4d4d4;
+    font-size: 0.9em;
 }
 
 #temperature_slider {
-    flex: 1;
+    width: 100px;
     background-color: #2d2d2d;
     cursor: pointer;
     height: 8px;
