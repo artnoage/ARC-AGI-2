@@ -2,54 +2,67 @@
 
 ## Technologies used
 
-*   **Core:**
-    *   ARC Dataset (JSON format): The fundamental data source.
-*   **Phase 1 (Synthetic Data Generation Interface):**
-    *   HTML, CSS, JavaScript: For the client-side testing interface (`apps/testing_interface.html`) and discussion interface (`apps/discuss_interface.html`). The discussion interface now includes improved layout, automatic input grid population, code block formatting, implementation of input and output grid visualization, and JavaScript event handling for the visualize buttons.
-    *   JSON: For storing task data, transformations, and reasoning traces.
-    *   **localStorage API:** Used for client-side storage of chat memory and API settings (including temperature) in the discussion interface.
-    *   **jQuery:** Used in the discussion interface for DOM manipulation and AJAX calls (specifically for code execution and visualization).
-    *   **OpenRouter API:** Integrated into the discussion interface for AI responses, including control over parameters like temperature. Now includes sending full conversation history for better context.
-*   **Phase 2 (Synthetic Data Generation & Verification):**
-*   **Phase 2 (Synthetic Data Generation & Verification):**
-    *   Python: Primary language for the synthetic data generation scripts and auxiliary utilities.
-    *   `asyncio`: For asynchronous operations, especially model API calls.
-    *   Standard Libraries: `json` (used for parsing `--task_ids` input), `os`, `argparse` (used for command-line argument parsing, including `--task_ids`), `logging`, `time` (used for timestamp generation, adjusted for concurrency), `signal`, `atexit`.
-    *   External Libraries: `aiohttp` (used in `utilities/model_utils.py` for async API calls), `python-dotenv` (for loading `.env`).
-    *   Language Models: Interaction with various models via local servers (e.g., Ollama) or APIs (e.g., OpenRouter).
-        *   **Key Python Components:**
-            *   `agents/reasoning_trace_generator.py`: Agent logic for reasoning traces.
-            *   `agents/reasoning_code_generator.py`: Agent logic for reasoning and code generation.
-            *   `synthetic_data_generators/generate_reasoning_data.py`: Runner script for reasoning data generation, **now supporting `--task_ids` input as a JSON string**.
-            *   `synthetic_data_generators/generate_code_data.py`: Runner script for code generation data generation, **now supporting `--task_ids` input as a JSON string**.
-            *   `synthetic_data_generators/verify_generated_code.py`: Script to verify generated code.
-            *   `utilities/config.py`: Configuration management.
-            *   `utilities/data_loader.py`: Data loading logic.
-            *   `utilities/model_utils.py`: Model interaction utilities.
-            *   `auxiliary_utilities/`: Folder containing helper scripts (e.g., `merge_reasoning.py`).
-*   **Phase 3 (Real Benchmarking):**
-    *   Python: Primary language for the benchmarking script.
-    *   Will likely use `asyncio` for model interaction.
-    *   Will utilize standard libraries like `json` (used for parsing `--task_ids` input), `os`, `argparse` (used for command-line argument parsing, including `--task_ids`), `logging`, `time`.
-    *   Will likely use external libraries like `aiohttp` and `python-dotenv`.
-    *   Language Models: Interaction with various models via local servers (e.g., Ollama) or APIs (e.g., OpenRouter).
-        *   **Key Python Components:**
-            *   `benchmark/run_benchmark.py`: The main benchmarking script, **now supporting `--task_ids` input as a JSON string**.
-            *   Will likely utilize `utilities/config.py`, `utilities/data_loader.py`, and `utilities/model_utils.py`.
+**Core**
+* ARC Dataset (JSON format): The fundamental data source
+
+**Synthetic Data Creation Interfaces**
+* HTML, CSS, JavaScript: For client-side interfaces
+* jQuery: For DOM manipulation and AJAX calls
+* localStorage API: For client-side storage of chat memory and API settings
+* OpenRouter API: For AI responses in the discussion interface
+* Python (Flask): For server-side code execution endpoint
+
+**Synthetic Data Generation & Verification**
+* Python: Primary language for scripts and utilities
+* asyncio: For asynchronous operations and concurrency control
+* Standard Libraries: json, os, argparse, logging, time, signal, atexit
+* External Libraries: aiohttp (for async API calls), python-dotenv (for loading .env)
+* Language Models: Via local servers (e.g., Ollama) or APIs (e.g., OpenRouter)
+
+**Key Python Components**:
+* `agents/reasoning_trace_generator.py`: Agent logic for reasoning traces
+* `agents/reasoning_code_generator.py`: Agent logic for reasoning and code generation
+* `agents/direct_answer_generator.py`: Agent logic for direct grid answers
+* `synthetic_data_generators/generate_reasoning_data.py`: Script for reasoning trace generation
+* `synthetic_data_generators/generate_code_data.py`: Script for code generation
+* `synthetic_data_generators/verify_generated_code.py`: Script for code verification
+* `benchmark/run_code_benchmark.py`: Script for code-based benchmarking
+* `benchmark/run_direct_benchmark.py`: Script for direct answer benchmarking
+* `utilities/config.py`: Configuration management
+* `utilities/data_loader.py`: Data loading logic
+* `utilities/model_utils.py`: Model interaction utilities
+* `utilities/code_execution.py`: Code execution sandbox
+* `auxiliary_utilities/`: Helper scripts for data processing
 
 ## Development setup
 
-*   **Phase 1:** Web browser (Chrome recommended) for using the testing interface. Text editor for potential HTML/JS modifications.
-*   **Phase 2 & 3:** Python environment (e.g., venv). Access to ARC dataset files (individual task files recommended). `.env` file for API keys. Access to `data/traces_store.json` for the merge utility (Phase 2). Potentially a local model server setup (e.g., Ollama).
+**Synthetic Data Creation Interfaces**
+* Web browser (Chrome recommended)
+* Text editor for HTML/JS modifications
+
+**Synthetic Data Generation & Benchmarking**
+* Python environment (e.g., venv)
+* Access to ARC dataset files
+* .env file for API keys
+* Potentially a local model server setup (e.g., Ollama)
 
 ## Technical constraints
 
-*   ARC dataset size: Individual task files (`data/training/`, `data/evaluation/`) are preferred over the monolithic `data/dataset.json` due to memory constraints.
-*   Model API rate limits and costs (if using external APIs).
-*   Network latency for model API calls.
-*   Requires Python environment capable of running `asyncio` and required libraries.
+* ARC dataset size: Individual task files preferred over monolithic dataset.json due to memory constraints
+* Model API rate limits and costs (if using external APIs)
+* Network latency for model API calls
+* Requires Python environment capable of running asyncio and required libraries
+* WebSocket connections when deployed under the `/arc2/` URL prefix require specific reverse proxy configuration
 
 ## Dependencies
 
-*   **Phase 1:** None beyond a modern web browser.
-*   **Phase 2 & 3:** Python 3.x, `aiohttp`, `python-dotenv`. No specific model client libraries currently needed as `utilities/model_utils.py` uses direct API calls.
+**Synthetic Data Creation Interfaces**
+* Modern web browser
+* jQuery library
+* OpenRouter API (for AI responses)
+
+**Synthetic Data Generation & Benchmarking**
+* Python 3.x
+* aiohttp
+* python-dotenv
+* Access to language models (local or API)

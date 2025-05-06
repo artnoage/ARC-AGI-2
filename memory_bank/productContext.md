@@ -1,18 +1,61 @@
+# Product Context
 
-*   **Real Benchmarking:** A dedicated benchmarking script within the `benchmark/` directory will handle loading ARC tasks, prompting models for solutions, executing generated code (if applicable), and evaluating the results. This script will be configurable and save detailed output for analysis. The saving mechanism has been made robust to ensure all results are captured even during concurrent execution. Users can now specify a list of task IDs to process using the `--task_ids` command-line argument.
+## Why this project exists
+
+The ARC-AGI-2 project exists to advance AGI research through three interconnected components:
+
+1. **Synthetic Data Creation**: Providing interfaces for humans to create, analyze, and annotate ARC tasks with reasoning traces and solutions
+2. **Synthetic Data Generation**: Automating the creation of reasoning traces and code solutions using language models
+3. **LLM Benchmarking**: Evaluating language model performance on ARC tasks to measure reasoning capabilities
+
+## Problems it solves
+
+* **Data Scarcity**: Creates a larger corpus of annotated ARC tasks with reasoning traces and solutions
+* **Collaborative Analysis**: Enables researchers to collectively analyze and solve ARC tasks
+* **Model Evaluation**: Provides standardized benchmarking for assessing LLM reasoning capabilities
+* **AI-Assisted Research**: Facilitates human-AI collaboration in solving complex reasoning tasks
+
+## How it should work
+
+* **Synthetic Data Creation**: Users interact with web interfaces to:
+  * Analyze and transform ARC tasks
+  * Add reasoning traces explaining solution steps
+  * Discuss tasks with AI assistants
+  * Test Python code solutions directly in the browser
+
+* **Synthetic Data Generation**: Automated scripts:
+  * Generate reasoning traces for ARC tasks using language models
+  * Create Python code solutions for tasks
+  * Verify generated code against test cases
+  * Store results in structured JSON format
+
+* **LLM Benchmarking**: Evaluation scripts:
+  * Test language models on ARC tasks
+  * Evaluate both code-based solutions and direct grid answers
+  * Track success/failure metrics
+  * Generate detailed performance reports
 
 ## User experience goals
 
-*   **Synthetic Data Generation Interface:** An intuitive interface for task interaction, transformation, and reasoning annotation. Clear feedback mechanisms (like the distance metric).
-*   **Discussion Interface:** A dedicated interface for discussing ARC tasks with an AI assistant.
-    *   Improved layout for better visibility of examples and chat area.
-    *   Automatic population of the input grid with the first test input for easier testing.
-    *   Clear and organized view of the conversation history with preserved code indentation in AI responses.
-    *   Allows users to control AI behavior via parameters like temperature.
-    *   Enables testing Python code solutions directly within the interface, with guidance on common issues like the 'shape' attribute error.
-    *   Ensures the AI assistant has full conversation context by including chat history in API calls.
-    *   Provides visual representation of the input grid via a "Visualize Input" button.
-    *   Displays both matrix and visual output side-by-side, with the visual output generated on demand via a "Visualize Output" button.
-    *   Organizes execution control buttons ("Visualize Input", "Visualize Output", "Execute Code") together for easy access.
-*   **Synthetic Data Generation Scripts:** Easy configuration and execution of data generation and verification processes. Detailed logging for troubleshooting. Clear, structured output for analysis, with a robust saving mechanism that correctly handles concurrent task execution. Users can now specify a list of task IDs to process using the `--task_ids` command-line argument.
-*   **Real Benchmarking:** Easy configuration and execution of benchmarks. Clear, structured output for analysis of model performance, with a robust saving mechanism that correctly handles concurrent task execution. Users can now specify a list of task IDs to process using the `--task_ids` command-line argument.
+* **Synthetic Data Creation Interfaces**:
+  * Intuitive task interaction, transformation, and reasoning annotation
+  * Clear feedback mechanisms (like distance metrics)
+  * AI-assisted task analysis with preserved code formatting
+  * Visual representation of input/output grids
+  * Integrated Python code execution environment
+  * User control over AI parameters (temperature, model selection)
+  * Persistent chat history for ongoing task analysis
+
+* **Synthetic Data Generation Scripts**:
+  * Easy configuration and execution
+  * Detailed logging for troubleshooting
+  * Structured output for analysis
+  * Robust handling of concurrent task execution
+  * Task filtering capabilities via command-line arguments
+
+* **LLM Benchmarking**:
+  * Simple configuration and execution
+  * Clear performance metrics and analysis
+  * Support for multiple evaluation approaches
+  * Robust saving of results during concurrent execution
+  * Task filtering capabilities via command-line arguments

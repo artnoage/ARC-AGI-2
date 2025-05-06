@@ -24,6 +24,7 @@
             <div id="discussion_interface">
                 <div id="top_bar">
                     <span id="current_user">User: Anonymous</span>
+                    <span id="current_task_name" style="text-align: center; flex-grow: 1;">No task selected</span>
                     <button id="logout_btn" class="secondary_btn">Logout</button>
                 </div>
 
@@ -36,10 +37,17 @@
                             <button id="prev_task_btn">< Prev</button>
                             <span id="task_index_display">Task 1/1</span>
                             <button id="next_task_btn">Next ></button>
-                            <div id="goto_task_controls">
-                                <label for="task_id_input">Go to ID:</label>
-                                <input type="text" id="task_id_input" size="10" placeholder="Enter ID">
-                                <button id="goto_task_btn">Go</button>
+                            <div id="navigation_controls" style="display: flex; gap: 15px;">
+                                <div id="goto_task_controls">
+                                    <label for="task_id_input">Go to ID:</label>
+                                    <input type="text" id="task_id_input" size="10" placeholder="Enter ID">
+                                    <button id="goto_task_btn">Go</button>
+                                </div>
+                                <div id="goto_task_number_controls">
+                                    <label for="task_number_input">Go to Task #:</label>
+                                    <input type="number" id="task_number_input" size="5" min="1" placeholder="#">
+                                    <button id="goto_task_number_btn">Go</button>
+                                </div>
                             </div>
                         </div>
                         <div id="task_preview"></div>
@@ -60,8 +68,8 @@
                 
                 <!-- Code Execution Area -->
                 <div id="code_execution_area">
-                    <div class="section_header">Python Code Execution</div>
-                    <div id="code_execution_content">
+                    <div class="section_header" style="position: sticky; left: 0;">Python Code Execution</div>
+                    <div id="code_execution_content" style="overflow-x: auto;">
                         <div id="code_input_container">
                             <label for="code_input">Python Code:</label>
                             <textarea id="code_input" placeholder="def solve_task(input_grid):
@@ -112,37 +120,46 @@
                 </div>
                 </div>
 
-                <!-- API Key Settings -->
-                <div id="api_settings">
-                    <div class="section_header">Settings</div>
-                    <div id="api_form">
-                        <div class="api_row">
-                            <label for="openrouter_key">OpenRouter API Key:</label>
-                            <input type="password" id="openrouter_key" placeholder="Enter your OpenRouter API key">
-                            <button id="save_key_btn">Save Key</button>
-                            <span id="api_status"></span>
+                <!-- Bottom Panel with Settings and Controls -->
+                <div id="bottom_panel">
+                    <!-- API Settings Section -->
+                    <div id="api_settings">
+                        <div class="section_header">API Settings</div>
+                        <div id="api_form">
+                            <div class="settings_group">
+                                <label for="openrouter_key">API Key:</label>
+                                <input type="password" id="openrouter_key" placeholder="Enter OpenRouter API key">
+                                <button id="save_key_btn">Save</button>
+                                <span id="api_status"></span>
+                            </div>
+                            
+                            <div class="settings_group">
+                                <label for="model_selector">Model:</label>
+                                <select id="model_selector">
+                                    <option value="claude">Claude 3.7 Sonnet</option>
+                                    <option value="gemini-pro">Gemini 2.5 Pro</option>
+                                    <option value="gemini-flash">Gemini 2.5 Flash</option>
+                                    <option value="gpt">GPT-4o Mini</option>
+                                </select>
+                            </div>
+                            
+                            <div class="settings_group">
+                                <label for="temperature_slider">Temp:</label>
+                                <input type="range" id="temperature_slider" min="0" max="1" step="0.1" value="0.7">
+                                <span id="temperature_value">0.7</span>
+                            </div>
                         </div>
-                        <div class="api_row">
-                            <label for="model_selector">Select Model:</label>
-                            <select id="model_selector">
-                                <option value="claude">Claude 3.7 Sonnet</option>
-                                <option value="gemini-pro">Gemini 2.5 Pro</option>
-                                <option value="gemini-flash">Gemini 2.5 Flash</option>
-                                <option value="gpt">GPT-4o Mini</option>
-                            </select>
+                    </div>
+                    
+                    <!-- Execution Controls Section -->
+                    <div id="execution_controls_panel">
+                        <div class="section_header">Execution Controls</div>
+                        <div id="execution_controls">
+                            <button id="visualize_input_btn">Visualize Input</button>
+                            <button id="visualize_output_btn">Visualize Output</button>
+                            <button id="execute_code_btn">Execute Code</button>
                         </div>
-                        <div class="api_row">
-                            <label for="temperature_slider">Temperature:</label>
-                            <input type="range" id="temperature_slider" min="0" max="1" step="0.1" value="0.7">
-                            <span id="temperature_value">0.7</span>
-                            <span class="slider_hint">(Lower: More focused, Higher: More creative)</span>
                     </div>
-                    <div id="execution_controls">
-                        <button id="visualize_input_btn">Visualize Input</button>
-                        <button id="visualize_output_btn">Visualize Output</button>
-                        <button id="execute_code_btn">Execute Code</button>
-                    </div>
-                </div>
                 </div>
             </div>
             <!-- End Discussion Interface -->

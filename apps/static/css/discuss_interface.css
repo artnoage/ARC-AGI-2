@@ -204,35 +204,50 @@
     background-color: #005f9e;
 }
 
-/* API Settings */
-#api_settings {
-    padding: 10px 15px;
+/* Bottom Panel Layout */
+#bottom_panel {
+    display: flex;
     background-color: #3c3c3c;
     border-top: 1px solid #4a4a4a;
 }
 
+/* API Settings */
+#api_settings {
+    flex: 1;
+    padding: 0;
+    border-right: 1px solid #4a4a4a;
+}
+
+/* Execution Controls Panel */
+#execution_controls_panel {
+    width: 33%;
+    min-width: 300px;
+}
+
 #execution_controls {
     display: flex;
+    flex-direction: column;
     gap: 10px;
-    margin-top: 5px;
-    padding: 5px 0;
-    justify-content: flex-end; /* Align buttons to the right */
+    padding: 15px;
+    align-items: center;
 }
 
 #execution_controls button {
-    padding: 8px 15px;
+    width: 100%;
+    padding: 10px 15px;
     border: none;
     border-radius: 3px;
     cursor: pointer;
     font-weight: bold;
+    text-align: center;
 }
 
-#visualize_input_btn {
+#visualize_input_btn, #visualize_output_btn {
     background-color: #007acc;
     color: white;
 }
 
-#visualize_input_btn:hover {
+#visualize_input_btn:hover, #visualize_output_btn:hover {
     background-color: #005f9e;
 }
 
@@ -249,46 +264,47 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 10px 0;
+    padding: 15px;
 }
 
-.api_row {
+.settings_group {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
     gap: 10px;
+    margin-bottom: 10px;
 }
 
 #api_form label {
-    margin-right: 5px;
     color: #d4d4d4;
-    min-width: 120px;
+    min-width: 60px;
+    white-space: nowrap;
 }
 
 #openrouter_key {
     flex: 1;
     min-width: 200px;
-    padding: 5px 10px;
+    padding: 8px 10px;
     border: 1px solid #555;
     border-radius: 3px;
-    background-color: #3c3c3c;
+    background-color: #2d2d2d;
     color: #d4d4d4;
 }
 
 #model_selector {
-    padding: 5px 10px;
+    flex: 1;
+    padding: 8px 10px;
     border: 1px solid #555;
     border-radius: 3px;
-    background-color: #3c3c3c;
+    background-color: #2d2d2d;
     color: #d4d4d4;
-    min-width: 150px;
 }
 
 #temperature_slider {
-    width: 150px;
-    margin: 0 10px;
-    background-color: #3c3c3c;
+    flex: 1;
+    background-color: #2d2d2d;
     cursor: pointer;
+    height: 8px;
+    border-radius: 4px;
 }
 
 #temperature_value {
@@ -298,15 +314,8 @@
     text-align: center;
 }
 
-.slider_hint {
-    font-size: 0.8em;
-    color: #aaaaaa;
-    font-style: italic;
-    margin-left: 10px;
-}
-
 #save_key_btn {
-    padding: 5px 15px;
+    padding: 8px 15px;
     background-color: #4caf50;
     color: white;
     border: none;
@@ -319,7 +328,7 @@
 }
 
 #api_status {
-    margin-left: 10px;
+    margin-left: 5px;
     font-size: 0.9em;
     color: #aaaaaa;
 }
@@ -462,7 +471,7 @@
     display: flex; /* Make it a row */
     flex-direction: row;
     gap: 15px; /* Gap between left and right */
-    align-items: flex-start; /* Align items to the top */
+    align-items: center; /* Align items to the center */
 }
 
 #grid_input_left {
@@ -488,7 +497,8 @@
 
 #grid_input_display {
     display: none; /* Hidden by default */
-    min-height: 100px; /* Keep minimum height */
+    width: 200px; /* Fixed width */
+    height: 200px; /* Fixed height */
     background-color: #2a2a2a; /* Add background color */
     border-radius: 3px; /* Add rounded corners */
     padding: 10px; /* Add padding */
@@ -559,7 +569,7 @@
     display: flex; /* Make it a row */
     flex-direction: row;
     gap: 15px; /* Gap between left and right */
-    align-items: flex-start; /* Align items to the top */
+    align-items: center; /* Align items to the center */
     padding: 10px;
     min-height: 100px;
 }
@@ -621,7 +631,8 @@
 
 #visual_output_display {
     display: none; /* Hidden by default */
-    min-height: 100px;
+    width: 200px; /* Fixed width */
+    height: 200px; /* Fixed height */
     background-color: #2a2a2a;
     border-radius: 3px;
     padding: 10px;

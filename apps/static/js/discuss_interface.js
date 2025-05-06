@@ -137,6 +137,18 @@ $(document).ready(function() {
         }
     });
     
+    // Go to task by number button
+    $('#goto_task_number_btn').click(function() {
+        gotoTaskByNumber();
+    });
+    
+    // Enter key for task number input
+    $('#task_number_input').keydown(function(event) {
+        if (event.keyCode === 13) {
+            gotoTaskByNumber();
+        }
+    });
+    
     // Clear history button
     $('#clear_history_btn').click(function() {
         if (CURRENT_TASK_ID) {
@@ -311,6 +323,14 @@ function loadTask(taskId, versionIndex = 0) {
         // Update task navigation
         updateTaskNavigation();
         
+        // Update task name in header
+        const uniqueIndex = UNIQUE_TASK_IDS.indexOf(taskId);
+        if (uniqueIndex !== -1) {
+            $('#current_task_name').text(`Task #${uniqueIndex + 1} (ID: ${taskId})`);
+        } else {
+            $('#current_task_name').text(`Task ID: ${taskId}`);
+        }
+        
         // Load chat history for this task
         displayChatHistory();
         
@@ -412,6 +432,44 @@ function gotoTaskById() {
         $('#task_id_input').val('');
     } else {
         addSystemMessage(`Task ID '${taskIdToFind}' not found.`);
+    }
+}
+
+function gotoTaskByNumber() {
+    const taskNumberInput = $('#task_number_input');
+    const taskNumberStr = taskNumberInput.val().trim();
+    if (!taskNumberStr) {
+        addSystemMessage("Please enter a Task Number.");
+        return;
+    }
+
+    const taskNumber = parseInt(taskNumberStr, 10);
+
+    if (isNaN(taskNumber)) {
+        addSystemMessage("Invalid Task Number entered.");
+        return;
+    }
+
+    if (!UNIQUE_TASK_IDS || UNIQUE_TASK_IDS.length === 0) {
+        addSystemMessage("No tasks loaded to navigate by number.");
+        return;
+    }
+
+    const totalTasks = UNIQUE_TASK_IDS.length;
+    if (taskNumber < 1 || taskNumber > totalTasks) {
+        addSystemMessage(`Task Number must be between 1 and ${totalTasks}.`);
+        return;
+    }
+
+    const taskIndex = taskNumber - 1; // Convert 1-based input to 0-based index
+    const taskIdToGo = UNIQUE_TASK_IDS[taskIndex];
+
+    if (taskIdToGo === CURRENT_TASK_ID) {
+        addSystemMessage(`Already viewing Task #${taskNumber} (ID: ${taskIdToGo}).`);
+    } else {
+        loadTask(taskIdToGo, 0); // Load first version
+        addSystemMessage(`Navigated to Task #${taskNumber} (ID: ${taskIdToGo})`);
+        taskNumberInput.val(''); // Clear input on success
     }
 }
 

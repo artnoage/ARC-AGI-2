@@ -2,9 +2,9 @@
 
 ## System architecture
 
-The project encompasses three main architectural areas:
+The project encompasses three main architectural components:
 
-**Phase 1: Synthetic Data Generation Interface**
+**Synthetic Data Creation Interfaces**
 
 ```mermaid
 graph TD
@@ -12,9 +12,9 @@ graph TD
         TestingUI[Testing Interface HTML/JS]
         DiscussUI[Discussion Interface HTML/JS]
     end
-    subgraph Server/Data
+    subgraph Server_Data
         ARC[ARC Dataset Files]
-        DS[Data Storage (JSON w/ Metadata)]
+        DS[Data_Storage_JSON_w_Metadata]
         CodeExec[Code Execution Endpoint]
     end
     subgraph Utilities
@@ -29,39 +29,38 @@ graph TD
     ARC -- Provides Base Tasks --> TestingUI
     ARC -- Provides Base Tasks --> DiscussUI
 ```
-*   Two client-side web applications allow users to interact with ARC tasks:
-    *   The testing interface (`apps/testing_interface.html`) for task solving and synthetic data creation.
-*   The discussion interface (`apps/discuss_interface.html`) for AI-assisted task analysis and discussion, including a Python code execution environment. This interface now features an improved layout for better visibility of examples and chat, automatic population of the input grid with the first test input, code block formatting to preserve indentation in AI messages, visual representation of the input grid, side-by-side display of matrix and visual output, and updated placement of the visualize buttons in the execution controls.
-*   User actions in the testing interface (solving, transforming, adding traces) generate new data stored alongside original tasks, often as enriched JSON files.
-*   The discussion interface interacts with a server-side endpoint (`/arc2/execute_code`) for executing Python code in a sandbox environment, utilizing the `utilities.code_execution.py` utility.
 
-**Phase 2: Synthetic Data Generation & Verification**
+* Two client-side web applications allow users to interact with ARC tasks:
+  * The testing interface (`apps/testing_interface.html`) for task solving and synthetic data creation
+  * The discussion interface (`apps/discuss_interface.html`) for AI-assisted task analysis and discussion, including a Python code execution environment
+* User actions in the testing interface (solving, transforming, adding traces) generate new data stored alongside original tasks
+* The discussion interface interacts with a server-side endpoint (`/arc2/execute_code`) for executing Python code in a sandbox environment
+
+**Synthetic Data Generation & Verification**
 
 ```mermaid
 graph LR
-    subgraph Synthetic Data Generators (Python)
-        ReasoningDataGen[synthetic_data_generators/generate_reasoning_data.py (Async w/ Semaphore, Saving, Exit Handling)]
-        CodeDataGen[synthetic_data_generators/generate_code_data.py (Async w/ Semaphore, Saving, Exit Handling)]
+    subgraph Synthetic Data Generators [Python]
+        ReasoningDataGen[synthetic_data_generators/generate_reasoning_data.py]
+        CodeDataGen[synthetic_data_generators/generate_code_data.py]
         CodeVerifier[synthetic_data_generators/verify_generated_code.py]
     end
-    subgraph Utilities (Root Level)
+    subgraph Utilities [Root Level]
         Config[utilities/config.py]
         Loader[utilities/data_loader.py]
         ModelUtil[utilities/model_utils.py]
     end
-    subgraph Agents (Root Level)
-        ReasoningAgent[agents/reasoning_trace_generator.py (Async)]
-        CodeAgent[agents/reasoning_code_generator.py (Async)]
+    subgraph Agents [Root Level]
+        ReasoningAgent[agents/reasoning_trace_generator.py]
+        CodeAgent[agents/reasoning_code_generator.py]
     end
     subgraph External
-        ARC_Files[ARC Dataset Files (Individual)]
-        ARC_Dataset[ARC Dataset (dataset.json)]
-        Model[Language Model (Local/API)]
-        ResultsReasoning[Reasoning Data Results (JSON)]
-        ResultsCode[Code Data Results (JSON)]
-        Traces[Trace Store (JSON)]
-        AuxUtil[Auxiliary Utilities (Python)]
-        VerificationResults[Verification Results (Log/Output)]
+        ARC_Files[ARC Dataset Files]
+        Model[Language Model - Local/API]
+        ResultsReasoning[Reasoning Data Results]
+        ResultsCode[Code Data Results]
+        Traces[Trace Store]
+        VerificationResults[Verification Results]
     end
 
     ReasoningDataGen -- Uses --> Config
@@ -73,83 +72,106 @@ graph LR
     CodeDataGen -- Uses --> CodeAgent
     CodeDataGen -- Uses --> ModelUtil
     Loader -- Reads --> ARC_Files
-    Loader -- Reads --> ARC_Dataset
     ReasoningAgent -- Uses --> ModelUtil
     CodeAgent -- Uses --> ModelUtil
     ModelUtil -- Interacts with --> Model
-    ReasoningAgent -- Processes Data from --> Loader
-    CodeAgent -- Processes Data from --> Loader
     ReasoningDataGen -- Saves --> ResultsReasoning
     CodeDataGen -- Saves --> ResultsCode
-    AuxUtil -- Reads --> ResultsReasoning
-    AuxUtil -- Reads/Writes --> Traces
     CodeVerifier -- Reads --> ResultsCode
     CodeVerifier -- Produces --> VerificationResults
 ```
-*   Two Python-based command-line applications orchestrate the synthetic data generation processes, configurable via `config.py` and command-line arguments:
-    *   `synthetic_data_generators/generate_reasoning_data.py`: Focuses solely on generating reasoning traces using `agents/reasoning_trace_generator.py`. Output: `synthetic_data_generators/synthetic_data/reasoning_data/reasoning_data_results_*.json`.
-    *   `synthetic_data_generators/generate_code_data.py`: Generates both reasoning and Python code using `agents/reasoning_code_generator.py`. Output: `synthetic_data_generators/synthetic_data/code_data/code_data_results_*.json`.
-*   A third script handles code verification:
-    *   `synthetic_data_generators/verify_generated_code.py`: Executes the Python code generated by `generate_code_data.py` against the task's test cases, reading from the results file. Output: Log files and console output.
-*   Shared utility components handle configuration (`utilities/config.py`), data loading (`utilities/data_loader.py` - supporting individual files or `dataset.json`), and model interaction (`utilities/model_utils.py`).
-*   Distinct agent logic exists in `agents/reasoning_trace_generator.py` and `agents/reasoning_code_generator.py`.
-*   Both data generation scripts (`synthetic_data_generators/`) implement result saving (including metadata and full prompts) with distinct output filenames and paths (see above).
-*   **Concurrency:** Both data generation scripts (`generate_reasoning_data.py`, `generate_code_data.py`) use `asyncio.Semaphore` to control the number of concurrent tasks processed, based on `config.max_concurrent_tasks`.
-*   **Saving & Exit:** Both data generation scripts implement periodic saving of partial results (appending to `.jsonl` files in `synthetic_data_generators/synthetic_data/reasoning_data/` or `synthetic_data_generators/synthetic_data/code_data/`) and graceful saving of all results on normal exit (`atexit`) or interruption (`SIGINT`) to timestamped `.json` files in the same subdirectories. Global state variables manage results and saving status within each script. Crucially, the timestamp for the results file is generated once at the beginning of the script execution and stored in a global variable (`g_timestamp`). This prevents concurrent tasks from generating different timestamps and overwriting each other's results.
-*   Auxiliary utilities (e.g., `auxiliary_utilities/merge_reasoning.py`) process the reasoning data results (`generate_reasoning_data.py` output) and integrate them with the trace store (`data/traces_store.json`), storing reasoning in the `text` field and creating new entries for each merged reasoning trace for an existing task ID. Utilities for processing code generation results may be added later.
 
-**Phase 3: Real Benchmarking**
+* Two Python-based command-line applications orchestrate the synthetic data generation:
+  * `synthetic_data_generators/generate_reasoning_data.py`: Generates reasoning traces using `agents/reasoning_trace_generator.py`
+  * `synthetic_data_generators/generate_code_data.py`: Generates both reasoning and Python code using `agents/reasoning_code_generator.py`
+* A third script handles code verification:
+  * `synthetic_data_generators/verify_generated_code.py`: Executes generated Python code against task test cases
+* Shared utility components handle configuration, data loading, and model interaction
+* Both data generation scripts implement concurrency control, periodic saving, and graceful exit handling
+
+**LLM Benchmarking**
 
 ```mermaid
 graph LR
-    subgraph Real Benchmarking (Python)
-        BenchmarkRunner[benchmark/run_benchmark.py (Generate & Test)]
+    subgraph Benchmarking [Python]
+        CodeBenchmark[benchmark/run_code_benchmark.py]
+        DirectBenchmark[benchmark/run_direct_benchmark.py]
     end
-    subgraph Utilities (Root Level)
+    subgraph Utilities [Root Level]
         Config[utilities/config.py]
         Loader[utilities/data_loader.py]
         ModelUtil[utilities/model_utils.py]
     end
+    subgraph Agents [Root Level]
+        CodeAgent[agents/reasoning_code_generator.py]
+        DirectAgent[agents/direct_answer_generator.py]
+    end
     subgraph External
-        ARC_Files[ARC Dataset Files (Individual)]
-        ARC_Dataset[ARC Dataset (dataset.json)]
-        Model[Language Model (Local/API)]
-        BenchmarkResults[Benchmark Results (JSON)]
+        ARC_Files[ARC Dataset Files]
+        Model[Language Model - Local/API]
+        BenchmarkResults[Benchmark Results]
     end
 
-    BenchmarkRunner -- Uses --> Config
-    BenchmarkRunner -- Uses --> Loader
-    BenchmarkRunner -- Uses --> ModelUtil
+    CodeBenchmark -- Uses --> Config
+    DirectBenchmark -- Uses --> Config
+    CodeBenchmark -- Uses --> Loader
+    DirectBenchmark -- Uses --> Loader
+    CodeBenchmark -- Uses --> CodeAgent
+    DirectBenchmark -- Uses --> DirectAgent
+    CodeBenchmark -- Uses --> ModelUtil
+    DirectBenchmark -- Uses --> ModelUtil
     Loader -- Reads --> ARC_Files
-    Loader -- Reads --> ARC_Dataset
     ModelUtil -- Interacts with --> Model
-    BenchmarkRunner -- Saves --> BenchmarkResults
+    CodeBenchmark -- Saves --> BenchmarkResults
+    DirectBenchmark -- Saves --> BenchmarkResults
 ```
-*   A dedicated Python script (`benchmark/run_benchmark.py`) handles the real benchmarking process.
-*   This script is responsible for loading ARC tasks, interacting with language models to generate solutions, executing the generated code against test cases, and evaluating the results.
-*   It will be configurable and save detailed benchmark results.
+
+* Two Python scripts handle different benchmarking approaches:
+  * `benchmark/run_code_benchmark.py`: Evaluates models on generating Python code solutions
+  * `benchmark/run_direct_benchmark.py`: Evaluates models on directly generating grid answers
+* Both scripts handle task loading, model interaction, result evaluation, and detailed reporting
 
 ## Key technical decisions
 
-*   **Phase 1:** Client-side JavaScript for UI interactions and data manipulation. JSON for data storage.
-*   **Phase 2:** Python for backend/scripting logic. Asynchronous programming (`asyncio`) for efficient model interaction and **concurrency control (`asyncio.Semaphore`)** in both data generation scripts. Modular design separating concerns (config, data, model, agents, generators, verifiers, auxiliary utilities). Use of `.env` for sensitive keys. Command-line argument parsing (`argparse`) for runtime configuration (including data source selection and concurrency limit). Detailed logging for debugging (outputting to `synthetic_data_generators/synthetic_data/`). `aiohttp` for async HTTP requests. Dual data loading methods implemented in `data_loader.py`. **Signal handling (`signal`, `atexit`)** for graceful shutdown and result saving in both data generation scripts. Global state management within each data generation script (`generate_reasoning_data.py`, `generate_code_data.py`) for accumulating results across async tasks. Code verification uses `exec` within a controlled environment.
-*   **Phase 3:** Python for scripting logic. Will likely utilize `asyncio` for model interaction. Will need to implement task loading, model prompting, code execution, and result evaluation within a single script (`benchmark/run_benchmark.py`). Configuration will likely be handled via `utilities/config.py` and CLI arguments.
+* **Synthetic Data Creation**: Client-side JavaScript for UI interactions and data manipulation. JSON for data storage.
+* **Synthetic Data Generation**: 
+  * Python for backend/scripting logic
+  * Asynchronous programming (`asyncio`) for efficient model interaction
+  * Concurrency control (`asyncio.Semaphore`) in data generation scripts
+  * Modular design separating concerns (config, data, model, agents, generators, verifiers)
+  * Command-line argument parsing for runtime configuration
+  * Signal handling (`signal`, `atexit`) for graceful shutdown and result saving
+  * Global state management for accumulating results across async tasks
+* **LLM Benchmarking**: 
+  * Python for scripting logic
+  * Asynchronous model interaction
+  * Configurable via command-line arguments
+  * Support for "best-of" approach to generate multiple solutions per task
 
 ## Design patterns in use
 
-*   **Phase 1:** Event-driven UI.
-*   **Phase 2:** Modular design. Configuration management pattern (config file + CLI overrides). Factory pattern in `utilities/model_utils.py` (`get_model`). **Concurrency limiting pattern (`asyncio.Semaphore`)** applied in both data generation scripts. **Graceful shutdown/resource cleanup pattern** using `signal` and `atexit` applied in both data generation scripts.
-*   **Phase 3:** Will likely employ a runner pattern within `benchmark/run_benchmark.py` to orchestrate the benchmarking process. May also utilize the Configuration management pattern and Factory pattern from `utilities/`.
+* **Synthetic Data Creation**: Event-driven UI
+* **Synthetic Data Generation**: 
+  * Modular design
+  * Configuration management pattern (config file + CLI overrides)
+  * Factory pattern in `utilities/model_utils.py` (`get_model`)
+  * Concurrency limiting pattern (`asyncio.Semaphore`)
+  * Graceful shutdown/resource cleanup pattern
+* **LLM Benchmarking**: 
+  * Runner pattern within benchmark scripts
+  * Configuration management pattern
+  * Factory pattern from utilities
 
 ## Component relationships
 
-*   **Phase 1:** UI depends on ARC data format. Data storage format defined in `data/nature_of_data.md`.
-*   **Phase 2:**
-    *   `synthetic_data_generators/generate_reasoning_data.py` orchestrates the reasoning data generation, using `agents/reasoning_trace_generator.py`, `utilities/data_loader.py`, and `utilities/model_utils.py`. It manages task flow, concurrency, and saving for reasoning traces.
-    *   `synthetic_data_generators/generate_code_data.py` orchestrates the code data generation, using `agents/reasoning_code_generator.py`, `utilities/data_loader.py`, and `utilities/model_utils.py`. It manages task flow, concurrency, and saving for reasoning + code results.
-    *   `synthetic_data_generators/verify_generated_code.py` reads the output from `generate_code_data.py` and executes the contained code against the embedded task data.
-    *   Both data generation scripts depend on `utilities/config.py` for settings and select the data loading method from `utilities/data_loader.py` based on configuration, **now including filtering based on the `--task_ids` argument**.
-    *   `agents/reasoning_trace_generator.py` and `agents/reasoning_code_generator.py` implement distinct prompting strategies but both rely on `utilities/model_utils.py` for API interaction.
-    *   `auxiliary_utilities/merge_reasoning.py` processes output from `synthetic_data_generators/generate_reasoning_data.py` and updates `data/traces_store.json`, storing reasoning in the `text` field and creating new entries for each merged reasoning trace for an existing task ID. Utilities for processing code generation results may be added later.
-*   **Phase 3:**
-    *   `benchmark/run_benchmark.py` will orchestrate the real benchmarking process, likely using `utilities/data_loader.py` to load tasks (now supporting filtering via `--task_ids`), `utilities/model_utils.py` to interact with models, and implementing its own logic for code execution and evaluation. It will depend on `utilities/config.py` for settings.
+* **Synthetic Data Creation**: UI depends on ARC data format. Data storage format defined in `data/nature_of_data.md`.
+* **Synthetic Data Generation**:
+  * Data generation scripts orchestrate the process using agents, utilities, and configuration
+  * Both scripts depend on `utilities/config.py` for settings and select data loading method based on configuration
+  * Agents implement distinct prompting strategies but rely on `utilities/model_utils.py` for API interaction
+  * Auxiliary utilities process output from data generation scripts and update storage
+* **LLM Benchmarking**:
+  * Benchmark scripts orchestrate the evaluation process
+  * Scripts use `utilities/data_loader.py` to load tasks (supporting filtering via `--task_ids`)
+  * Scripts use `utilities/model_utils.py` to interact with models
+  * Scripts implement their own logic for code execution and evaluation
