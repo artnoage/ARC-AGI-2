@@ -17,7 +17,8 @@ The current focus is on completing and testing the synthetic data generation and
   * Added task name display in the header that updates when task changes
   * Fixed horizontal scrolling in code execution panel to preserve header position
   * Redesigned settings panel to be more compact (70% height reduction)
-  * Restructured settings panel into two vertical columns ("API Settings" and "Visualise") with a visual separator for improved layout
+  * Restructured settings panel into three vertical columns ("API Settings", "Navigation", and "Execution Controls") with visual separators for improved layout
+  * Made sliders shorter to fit better in the compact panels
 * Enhanced OpenRouter API integration:
   * Added model selector dropdown
   * Implemented temperature slider for controlling AI responses

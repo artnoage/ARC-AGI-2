@@ -21,6 +21,8 @@
   * Added task name display in header that updates when task changes
   * Fixed horizontal scrolling in code execution panel to preserve header position
   * Redesigned settings panel with compact layout (70% height reduction)
+  * Restructured settings panel into three vertical columns ("API Settings", "Navigation", and "Execution Controls")
+  * Made sliders shorter to fit better in the compact panels
 * Chat memory functionality:
   * Username and task-specific storage
   * Persistent conversations

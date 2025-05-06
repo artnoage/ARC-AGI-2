@@ -218,10 +218,24 @@
     border-right: 1px solid #4a4a4a;
 }
 
+/* Navigation Panel */
+#navigation_panel {
+    flex: 1;
+    padding: 0;
+    border-right: 1px solid #4a4a4a;
+}
+
+#navigation_controls_panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px;
+}
+
 /* Execution Controls Panel */
 #execution_controls_panel {
-    width: 33%;
-    min-width: 300px;
+    flex: 1;
+    min-width: 250px;
 }
 
 #execution_controls {
@@ -318,7 +332,7 @@
 }
 
 #temperature_slider {
-    width: 100px;
+    width: 80px;
     background-color: #2d2d2d;
     cursor: pointer;
     height: 8px;
