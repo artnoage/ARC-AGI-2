@@ -604,7 +604,6 @@ def handle_sign_variation(data):
     # --- Emit result back to client ---
     emit('variation_sign_result', response_data, room=sid)
 
-
 # --- Main Execution ---
 if __name__ == '__main__':
     print("Starting Flask-SocketIO server...")

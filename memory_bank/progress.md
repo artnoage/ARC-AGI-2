@@ -14,6 +14,11 @@
   * Model selector dropdown
   * Temperature control slider
   * Full conversation history context
+  * **Increased API timeout to 3 minutes (180 seconds)**
+  * **Implemented and tested streaming functionality for real-time response display**
+  * **Added a streaming toggle in the UI (enabled by default)**
+  * **Implemented and tested protection against task switching during streaming, including cancelling active requests**
+  * **Added detailed logging for streaming and error handling**
 * Navigation improvements in discussion interface:
   * "Go to Task #" functionality added
   * Moved all navigation controls to a dedicated "Navigation" panel in the bottom section
@@ -24,10 +29,10 @@
   * Redesigned settings panel with compact layout (70% height reduction)
   * Restructured settings panel into three vertical columns ("API Settings", "Navigation", and "Execution Controls")
   * Made sliders shorter to fit better in the compact panels
-  * **Added variation navigation similar to the testing interface**
-  * **Made version navigation always visible in the navigation panel**
-  * **Removed the "Random Task" task navigation button**
-  * **Integrated task navigation buttons (Prev/Next) with the task numbering display**
+  * Added variation navigation similar to the testing interface
+  * Made version navigation always visible in the navigation panel
+  * Removed the "Random Task" task navigation button
+  * Integrated task navigation buttons (Prev/Next) with the task numbering display
   * Implemented "Task Data Source" dropdown in the navigation panel, allowing selection of "Use original," "Use variation," or "Use both" to control the task examples sent to the LLM.
 * Chat memory functionality:
   * Username and task-specific storage
@@ -38,6 +43,7 @@
   * Input/output grid visualization
   * Error handling and display
   * Improved layout and controls
+* **Created and tested `test_streaming.html` and `standalone_openrouter_api.js` for standalone streaming testing.**
 
 **Synthetic Data Generation & Verification (Implemented, Needs Testing)**
 * Core components implemented:

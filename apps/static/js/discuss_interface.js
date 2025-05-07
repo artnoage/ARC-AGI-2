@@ -11,6 +11,9 @@ var socket = null;
 var API_KEY = null;
 var CHAT_MEMORY = {}; // Memory storage for chat messages
 var TEMPERATURE = 0.7; // Default temperature value for API calls
+var USE_STREAMING = true; // Default to use streaming for responses
+var ACTIVE_STREAM_READER = null; // Track active stream reader for cancellation
+var ACTIVE_STREAM_CONTROLLER = null; // Track active AbortController for cancellation
 
 // Initialize the interface
 $(document).ready(function() {
@@ -111,6 +114,22 @@ $(document).ready(function() {
         $('#temperature_slider').val(tempValue);
         $('#temperature_value').text(tempValue.toFixed(1));
     }
+    
+    // Streaming toggle event
+    $('#streaming_toggle').change(function() {
+        USE_STREAMING = $(this).is(':checked');
+        $('#streaming_status').text(USE_STREAMING ? 'Enabled' : 'Disabled');
+        localStorage.setItem('use_streaming', USE_STREAMING ? 'true' : 'false');
+        console.log(`Streaming ${USE_STREAMING ? 'enabled' : 'disabled'}`);
+    });
+    
+    // Load saved streaming preference
+    const savedStreaming = localStorage.getItem('use_streaming');
+    if (savedStreaming !== null) {
+        USE_STREAMING = savedStreaming === 'true';
+        $('#streaming_toggle').prop('checked', USE_STREAMING);
+        $('#streaming_status').text(USE_STREAMING ? 'Enabled' : 'Disabled');
+    }
 
     // Task Data Source Selector
     $('#task_data_source_select').change(function() {
@@ -127,7 +146,9 @@ $(document).ready(function() {
 
     // Send message button
     $('#send_message_btn').click(function() {
-        sendUserMessage();
+        if (!$(this).prop('disabled')) {
+            sendUserMessage();
+        }
     });
 
     // Send message on Enter (but allow Shift+Enter for new lines)
@@ -201,6 +222,11 @@ $(document).ready(function() {
     // Visualize output button
     $('#visualize_output_btn').click(function() {
         visualizeOutputGrid();
+    });
+    
+    // Submit trace button
+    $('#submit_trace_btn').click(function() {
+        submitReasoningTrace();
     });
 });
 
@@ -322,9 +348,21 @@ function loadDataset() {
 
 // Load a specific task
 function loadTask(taskId, versionIndex = 0) {
+    // Cancel any active streaming requests
+    if (ACTIVE_STREAM_CONTROLLER) {
+        console.log("Cancelling active streaming request due to task change");
+        ACTIVE_STREAM_CONTROLLER.abort();
+        ACTIVE_STREAM_CONTROLLER = null;
+    }
+    
     if (!TASK_VERSIONS_MAP[taskId] || versionIndex < 0 || versionIndex >= TASK_VERSIONS_MAP[taskId].length) {
         addSystemMessage(`Error: Task ID '${taskId}' version index ${versionIndex} not found.`);
         return;
+    }
+    
+    // Add a system message if we're changing tasks during an active conversation
+    if (CURRENT_TASK_ID && CURRENT_TASK_ID !== taskId) {
+        addSystemMessage(`Navigated from task ${CURRENT_TASK_ID} to task ${taskId}`);
     }
 
     const taskObject = TASK_VERSIONS_MAP[taskId][versionIndex];
@@ -561,6 +599,9 @@ function gotoTaskByNumber() {
 function sendUserMessage() {
     const messageText = $('#chat_input').val().trim();
     if (!messageText) return;
+    
+    // Disable the send button to prevent multiple submissions
+    $('#send_message_btn').prop('disabled', true);
 
     // Add user message to chat
     addUserMessage(messageText);
@@ -669,17 +710,158 @@ function sendUserMessage() {
             console.log(`Including ${conversationHistory.length} previous messages in conversation history`);
         }
         
-        // Use the OpenRouter API to get a response
-        OpenRouterAPI.sendMessage(API_KEY, messageText, taskContext, TEMPERATURE, conversationHistory)
-            .then(response => {
-                removeTypingIndicator();
-                addAiMessage(response);
-            })
-            .catch(error => {
-                removeTypingIndicator();
-                console.error("Error getting AI response:", error);
-                addSystemMessage(`Error: ${error.message || "Failed to get response from AI model"}`);
-            });
+        if (USE_STREAMING) {
+            // Create a unique ID for the AI message
+            const messageId = 'ai_msg_' + Date.now();
+            
+            // Add an empty AI message that will be filled by streaming
+            const emptyMessageHtml = `
+                <div class="ai_message" id="${messageId}">
+                    <div class="message_sender">AI Assistant</div>
+                    <div class="message_content"></div>
+                </div>
+            `;
+            removeTypingIndicator();
+            $('#chat_messages').append(emptyMessageHtml);
+            scrollChatToBottom();
+            
+            // Create a streaming handler that will update the message content
+            const streamHandler = function(chunk) {
+                console.log("Processing chunk in streamHandler, length:", chunk.length);
+                
+                // Skip empty chunks or processing messages
+                if (!chunk.trim() || chunk.includes("OPENROUTER PROCESSING")) {
+                    console.log("Skipping empty chunk or processing message");
+                    return;
+                }
+                
+                // Process the chunk to handle code blocks and newlines
+                let processedChunk = escapeHtml(chunk);
+                
+                // Get the current content
+                const messageElement = $(`#${messageId} .message_content`);
+                if (messageElement.length === 0) {
+                    console.error("Message element not found:", messageId);
+                    return;
+                }
+                
+                let currentContent = messageElement.html();
+                console.log("Current content length:", currentContent.length);
+                
+                // Append the new chunk
+                let newContent = currentContent + processedChunk;
+                
+                // Check if we have complete code blocks
+                const codeBlockRegex = /```(?:python)?([\s\S]*?)```/g;
+                newContent = newContent.replace(codeBlockRegex, function(match, codeContent) {
+                    // Wrap code in a pre>code block to preserve indentation
+                    return `<pre><code>${codeContent}</code></pre>`;
+                });
+                
+                // For text outside of code blocks, replace newlines with <br>
+                // But we need to avoid replacing newlines inside the <pre> tags we just created
+                let finalHtml = '';
+                let segments = newContent.split(/(<pre>[\s\S]*?<\/pre>)/g);
+                
+                segments.forEach(segment => {
+                    if (segment.startsWith('<pre>')) {
+                        finalHtml += segment;
+                    } else {
+                        finalHtml += segment.replace(/\n/g, '<br>');
+                    }
+                });
+                
+                // Update the message content
+                messageElement.html(finalHtml);
+                console.log("Updated message content, new length:", finalHtml.length);
+                
+                scrollChatToBottom();
+            };
+            
+            // Use the OpenRouter API with streaming
+            let fullResponse = '';
+            
+            // Create an AbortController for this request
+            ACTIVE_STREAM_CONTROLLER = new AbortController();
+            
+            // Add a message to indicate which task this stream belongs to
+            const currentTaskId = CURRENT_TASK_ID;
+            
+            console.log("Starting streaming request for task:", currentTaskId);
+            
+            try {
+                OpenRouterAPI.sendMessage(API_KEY, messageText, taskContext, TEMPERATURE, conversationHistory, true, 
+                    function(chunk) {
+                        // Only process the chunk if we're still on the same task
+                        if (CURRENT_TASK_ID === currentTaskId) {
+                            console.log("Received chunk for task:", currentTaskId, "Length:", chunk.length);
+                            fullResponse += chunk;
+                            streamHandler(chunk);
+                        } else {
+                            console.log("Ignoring chunk for previous task:", currentTaskId, "Current task:", CURRENT_TASK_ID);
+                        }
+                    })
+                    .then(response => {
+                        console.log("Streaming complete for task:", currentTaskId, "Response length:", response.length);
+                        
+                        // Save the complete response to memory only if we're still on the same task
+                        if (CURRENT_TASK_ID === currentTaskId) {
+                            addMessageToMemory(CURRENT_TASK_ID, 'ai', fullResponse);
+                        }
+                        
+                        // Clear the active controller
+                        if (ACTIVE_STREAM_CONTROLLER) {
+                            ACTIVE_STREAM_CONTROLLER = null;
+                        }
+                        
+                        // Re-enable the send button
+                        $('#send_message_btn').prop('disabled', false);
+                    })
+                    .catch(error => {
+                        console.error("Streaming error for task:", currentTaskId, "Error:", error);
+                        
+                        // Only show error if it's not an abort error or if we're still on the same task
+                        if (error.name !== 'AbortError' || CURRENT_TASK_ID === currentTaskId) {
+                            console.error("Error getting AI response:", error);
+                            addSystemMessage(`Error: ${error.message || "Failed to get response from AI model"}`);
+                        } else {
+                            console.log("Streaming was aborted for task:", currentTaskId);
+                        }
+                        
+                        // Clear the active controller
+                        if (ACTIVE_STREAM_CONTROLLER) {
+                            ACTIVE_STREAM_CONTROLLER = null;
+                        }
+                        
+                        // Re-enable the send button
+                        $('#send_message_btn').prop('disabled', false);
+                    });
+            } catch (error) {
+                console.error("Exception during streaming setup:", error);
+                addSystemMessage(`Error: ${error.message || "Failed to set up streaming"}`);
+                
+                // Clear the active controller
+                if (ACTIVE_STREAM_CONTROLLER) {
+                    ACTIVE_STREAM_CONTROLLER = null;
+                }
+            }
+        } else {
+            // Use the OpenRouter API without streaming
+            OpenRouterAPI.sendMessage(API_KEY, messageText, taskContext, TEMPERATURE, conversationHistory)
+                .then(response => {
+                    removeTypingIndicator();
+                    addAiMessage(response);
+                    // Re-enable the send button
+                    $('#send_message_btn').prop('disabled', false);
+                })
+                .catch(error => {
+                    removeTypingIndicator();
+                    console.error("Error getting AI response:", error);
+                    addSystemMessage(`Error: ${error.message || "Failed to get response from AI model"}`);
+                    // Re-enable the send button
+                    $('#send_message_btn').prop('disabled', false);
+                });
+        }
     } else {
         // Remove typing indicator after a short delay
         setTimeout(() => {
@@ -1268,4 +1450,49 @@ function visualizeOutputGrid() {
     
     // Show the visual output display
     $('#visual_output_display').show();
+}
+
+// Submit Reasoning Trace Function
+function submitReasoningTrace() {
+    // Get trace content from UI
+    const traceContent = $('#code_input').val().trim();
+    
+    // Get current task ID
+    const taskId = CURRENT_TASK_ID;
+    
+    // Validate inputs
+    if (!traceContent) {
+        $('#execution_status').text('Please enter reasoning trace content');
+        return;
+    }
+    
+    if (!taskId) {
+        $('#execution_status').text('No task selected to submit trace for');
+        return;
+    }
+    
+    // Update status
+    $('#execution_status').text('Submitting reasoning trace...');
+    $('#code_error_display').hide();
+    
+    // Check if socket is connected
+    if (socket && socket.connected) {
+        // Emit add_trace event to server (same as testing interface)
+        console.log(`Emitting add_trace: task_id=${taskId}, username=${USERNAME}, text=${traceContent}`);
+        socket.emit('add_trace', {
+            task_id: taskId,
+            username: USERNAME,
+            text: traceContent
+        });
+        
+        // Clear the code input area immediately for better UX
+        $('#code_input').val('');
+        
+        // Show temporary success message (will be updated by socket events)
+        $('#execution_status').text('Reasoning trace submitted successfully');
+    } else {
+        // Socket not connected
+        $('#execution_status').text('Cannot submit trace: Not connected to real-time server');
+        $('#code_error_display').text('WebSocket connection is not available. Please refresh the page.').show();
+    }
 }

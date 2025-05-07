@@ -14,17 +14,16 @@ The current focus is on completing and testing the synthetic data generation and
   * Added "Go to Task #" functionality to the Discussion Interface
   * Moved all navigation controls to a dedicated "Navigation" panel in the bottom section
   * Removed duplicate navigation controls from the top section to give more space for task display
-  * Moved task index display from the top section to the Navigation panel
   * Repositioned execution buttons for better space utilization
   * Added task name display in the header that updates when task changes
   * Fixed horizontal scrolling in code execution panel to preserve header position
   * Redesigned settings panel to be more compact (70% height reduction)
   * Restructured settings panel into three vertical columns ("API Settings", "Navigation", and "Execution Controls") with visual separators for improved layout
   * Made sliders shorter to fit better in the compact panels
-  * **Added variation navigation similar to the testing interface**
-  * **Made version navigation always visible in the navigation panel**
-  * **Removed the "Random Task" task navigation button**
-  * **Integrated task navigation buttons (Prev/Next) with the task numbering display**
+  * Added variation navigation similar to the testing interface
+  * Made version navigation always visible in the navigation panel
+  * Removed the "Random Task" task navigation button
+  * Integrated task navigation buttons (Prev/Next) with the task numbering display
   * Removed "Go to ID" and "Go to #" inputs from the navigation panel.
   * Added a "Task Data Source" dropdown with options: "Use original", "Use variation", "Use both".
   * Updated JavaScript to use the selected data source to determine which task examples (original, variation, or combined) are sent to the LLM.
@@ -32,6 +31,11 @@ The current focus is on completing and testing the synthetic data generation and
   * Added model selector dropdown
   * Implemented temperature slider for controlling AI responses
   * Ensured full conversation history is sent to the AI model
+  * **Increased API timeout to 3 minutes (180 seconds)**
+  * **Implemented streaming functionality for real-time response display**
+  * **Added a streaming toggle in the UI (enabled by default)**
+  * **Implemented protection against task switching during streaming, including cancelling active requests**
+  * **Added detailed logging for streaming and error handling**
 * Implemented chat memory in discussion interface:
   * Username-based and task-specific memory storage
   * Persistent conversations across page refreshes
@@ -41,6 +45,7 @@ The current focus is on completing and testing the synthetic data generation and
   * Implemented "Visualize Input/Output" buttons
   * Improved layout and spacing of execution controls
   * Added guidance on handling common errors
+* **Created `test_streaming.html` and `standalone_openrouter_api.js` for standalone streaming testing.**
 
 **Synthetic Data Generation & Verification**
 * Enhanced data generation scripts with:
@@ -100,6 +105,9 @@ The current focus is on completing and testing the synthetic data generation and
 * Temperature control via slider
 * Full conversation history sent for better context
 * Code execution environment for testing solutions
+* **Implemented streaming for AI responses**
+* **Increased API timeout to 3 minutes**
+* **Added task switching protection during streaming**
 
 **Concurrency and Robustness**
 * Async operations with concurrency limits

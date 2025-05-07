@@ -1,5 +1,5 @@
 /**
- * OpenRouter API Integration for ARC AI Discussion Interface
+ * Standalone OpenRouter API Integration for Testing
  * Handles communication with OpenRouter API for AI model responses
  */
 
@@ -59,7 +59,7 @@ function getSelectedModel() {
  * @param {function} onStreamChunk - Callback function for streaming chunks (optional)
  * @returns {Promise} Promise that resolves with the AI response
  */
-async function sendMessageToOpenRouter(apiKey, userMessage, taskContext, temperature = 0.7, conversationHistory = [], useStreaming = false, onStreamChunk = null) {
+async function sendMessageToOpenRouter(apiKey, userMessage, taskContext = '', temperature = 0.7, conversationHistory = [], useStreaming = false, onStreamChunk = null) {
     if (!apiKey) {
         throw new Error("API key is required");
     }
@@ -77,25 +77,7 @@ async function sendMessageToOpenRouter(apiKey, userMessage, taskContext, tempera
                      "Your goal is to help the user understand patterns, transformations, and reasoning strategies " +
                      "for solving ARC tasks. Be clear, helpful, and provide step-by-step explanations when appropriate. " +
                      
-                     taskContext +
-                     
-                     "\n---\n" +
-                     "In case the user asks for code generation I provide some guidlines:"+
-                     "\n"+
-                     "**Guidliness for Code Generation:**\n\n" +
-                     "1.  Analyze the examples to determine the transformation rule.\n" +
-                     "2.  Explain the rule clearly.\n" +
-                     "3.  Provide Python code implementing the rule in a function named `solve_task`.\n" +
-                     "4.  **IMPORTANT:** The `solve_task(task_input)` function must be robust. It should correctly handle being called with EITHER:\n" +
-                     "    *   The full ARC task dictionary (where the relevant grid is typically `task_input['test'][0]['input']`).\n" +
-                     "    *   Just the input grid itself (a list of lists).\n" +
-                     "    Include checks (e.g., using `isinstance`) to determine the input type and extract/use the grid accordingly. Handle potential errors gracefully if the input format is unexpected.\n" +
-                     "---"+
-                     "\n---\n" +
-                     "In case the user gives you hints:"+
-                     "\n"+
-                     "Take the hints into account in your thinking process but do NOT make any mention of them in your reasoning or in the code."+
-                     "---"
+                     (taskContext ? taskContext : "")
         }
     ];
     
@@ -118,7 +100,7 @@ async function sendMessageToOpenRouter(apiKey, userMessage, taskContext, tempera
         stream: useStreaming
     };
 
-    // Request options with extended timeout (90 seconds)
+    // Request options
     const requestOptions = {
         method: "POST",
         headers: {
@@ -179,63 +161,34 @@ async function sendMessageToOpenRouter(apiKey, userMessage, taskContext, tempera
  * @returns {Promise<string>} Complete response text
  */
 async function handleStreamingResponse(requestOptions, onChunk) {
-    console.log("Starting streaming request to OpenRouter API");
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", requestOptions);
     
-    // Add AbortController with timeout for streaming requests
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-        console.log("Streaming request timeout (3 minutes)");
-        controller.abort();
-    }, 180000); // 3 minutes timeout
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("OpenRouter API streaming error:", errorText);
+        throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+    }
+    
+    if (!response.body) {
+        throw new Error("ReadableStream not supported in this browser.");
+    }
+    
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let completeResponse = "";
     
     try {
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            ...requestOptions,
-            signal: controller.signal
-        });
-        
-        console.log("Streaming response received, status:", response.status);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("OpenRouter API streaming error:", errorText);
-            throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
-        }
-        
-        if (!response.body) {
-            throw new Error("ReadableStream not supported in this browser.");
-        }
-        
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let completeResponse = "";
-        let chunkCount = 0;
-        
-        console.log("Starting to read streaming response");
-        
         while (true) {
             const { done, value } = await reader.read();
-            if (done) {
-                console.log("Stream reading complete, received", chunkCount, "chunks");
-                break;
-            }
+            if (done) break;
             
             const chunk = decoder.decode(value, { stream: true });
-            chunkCount++;
-            
-            if (chunkCount === 1) {
-                console.log("First chunk received:", chunk.substring(0, 50) + "...");
-            }
-            
             const lines = chunk.split('\n').filter(line => line.trim() !== '');
             
             for (const line of lines) {
                 if (line.startsWith('data: ')) {
                     const data = line.substring(6);
-                    if (data === '[DONE]') {
-                        console.log("Received [DONE] marker");
-                        continue;
-                    }
+                    if (data === '[DONE]') continue;
                     
                     try {
                         const parsed = JSON.parse(data);
@@ -245,25 +198,17 @@ async function handleStreamingResponse(requestOptions, onChunk) {
                             onChunk(content);
                         }
                     } catch (e) {
-                        console.warn("Error parsing stream chunk:", e, "Line:", line);
+                        console.warn("Error parsing stream chunk:", e);
                     }
                 }
             }
         }
-        
-        clearTimeout(timeoutId);
-        return completeResponse;
     } catch (error) {
-        clearTimeout(timeoutId);
-        
-        if (error.name === 'AbortError') {
-            console.error("Streaming request aborted (timeout or manual cancellation)");
-            throw new Error("Streaming request was aborted. The model may be taking too long to respond.");
-        }
-        
         console.error("Error reading stream:", error);
         throw error;
     }
+    
+    return completeResponse;
 }
 
 // Export functions for use in other scripts
