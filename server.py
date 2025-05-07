@@ -432,7 +432,7 @@ def handle_remove_variation(data):
     
     # Find all versions of the task and their indices in the dataset
     for i, entry in enumerate(unified_dataset_data):
-        if entry.get('id') == task_id:
+        if entry.get('task_id') == task_id: # Use task_id
             task_versions.append(entry)
             task_indices.append(i)
     
@@ -461,7 +461,7 @@ def handle_remove_variation(data):
     # Realign version numbers for higher versions
     versions_updated = 0
     for entry in unified_dataset_data:
-        if entry.get('id') == task_id and entry.get('version', 0) > version_number:
+        if entry.get('task_id') == task_id and entry.get('version', 0) > version_number: # Use task_id
             entry['version'] = entry['version'] - 1
             versions_updated += 1
     
@@ -480,7 +480,7 @@ def handle_remove_variation(data):
         unified_dataset_data.insert(index_in_dataset, removed_version)
         # Restore version numbers
         for entry in unified_dataset_data:
-            if entry.get('id') == task_id and entry.get('version', 0) >= version_number:
+            if entry.get('task_id') == task_id and entry.get('version', 0) >= version_number: # Use task_id
                 entry['version'] = entry['version'] + 1
         
         emit('variation_sign_result', {
@@ -619,7 +619,7 @@ def handle_sign_variation(data):
 
     # Iterate through a copy to avoid issues if we modify the list during iteration (though append should be safe)
     for i, entry in enumerate(list(unified_dataset_data)):
-        if entry.get('id') == original_task_id:
+        if entry.get('task_id') == original_task_id: # Use task_id
             current_version = entry.get('version', 0)
             highest_version = max(highest_version, current_version)
 
@@ -653,7 +653,7 @@ def handle_sign_variation(data):
         # Create new entry
         new_version_number = highest_version + 1
         new_entry = {
-            "id": original_task_id,
+            "task_id": original_task_id, # Use task_id
             "version": new_version_number,
             "train": variation_data['train'],
             "test": variation_data['test'],

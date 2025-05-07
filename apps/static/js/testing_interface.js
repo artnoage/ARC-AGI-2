@@ -1459,7 +1459,7 @@ function connectWebSocket() {
             
             // Fetch fresh dataset from server
             $.ajax({
-                url: `/data/dataset.json`, // Use root-relative path
+                url: `/arc2/static/dataset.json`, // Use consistent static path
                 dataType: 'json',
                 cache: false, // Prevent caching to ensure we get fresh data
                 success: function(data) {

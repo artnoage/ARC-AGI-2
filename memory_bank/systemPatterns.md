@@ -13,27 +13,23 @@ graph TD
         DiscussUI[Discussion Interface HTML/JS]
     end
     subgraph Server_Data
-        ARC[ARC Dataset Files]
-        DS[Data_Storage_JSON_w_Metadata]
+        StaticDataset[apps/static/dataset.json]
         CodeExec[Code Execution Endpoint]
     end
     subgraph Utilities
         CodeExecUtil[utilities/code_execution.py]
     end
 
-    TestingUI -- Loads/Displays --> ARC
-    TestingUI -- Saves Transformations/Traces --> DS
-    DiscussUI -- Loads/Displays --> ARC
+    TestingUI -- Loads/Displays/Saves --> StaticDataset
+    DiscussUI -- Loads/Displays --> StaticDataset
     DiscussUI -- Interacts with --> CodeExec
     CodeExec -- Uses --> CodeExecUtil
-    ARC -- Provides Base Tasks --> TestingUI
-    ARC -- Provides Base Tasks --> DiscussUI
 ```
 
 * Two client-side web applications allow users to interact with ARC tasks:
   * The testing interface (`apps/testing_interface.html`) for task solving and synthetic data creation
   * The discussion interface (`apps/discuss_interface.html`) for AI-assisted task analysis and discussion, including a Python code execution environment
-* User actions in the testing interface (solving, transforming, adding traces) generate new data stored alongside original tasks
+* User actions in the testing interface (solving, transforming, adding traces) generate new data stored in `apps/static/dataset.json`
 * The discussion interface interacts with a server-side endpoint (`/arc2/execute_code`) for executing Python code in a sandbox environment
 
 **Synthetic Data Generation & Verification**
@@ -55,7 +51,7 @@ graph LR
         CodeAgent[agents/reasoning_code_generator.py]
     end
     subgraph External
-        ARC_Files[ARC Dataset Files]
+        StaticDataset[apps/static/dataset.json]
         Model[Language Model - Local/API]
         ResultsReasoning[Reasoning Data Results]
         ResultsCode[Code Data Results]
@@ -71,7 +67,7 @@ graph LR
     CodeDataGen -- Uses --> Loader
     CodeDataGen -- Uses --> CodeAgent
     CodeDataGen -- Uses --> ModelUtil
-    Loader -- Reads --> ARC_Files
+    Loader -- Reads --> StaticDataset
     ReasoningAgent -- Uses --> ModelUtil
     CodeAgent -- Uses --> ModelUtil
     ModelUtil -- Interacts with --> Model
@@ -107,7 +103,7 @@ graph LR
         DirectAgent[agents/direct_answer_generator.py]
     end
     subgraph External
-        ARC_Files[ARC Dataset Files]
+        StaticDataset[apps/static/dataset.json]
         Model[Language Model - Local/API]
         BenchmarkResults[Benchmark Results]
     end
@@ -120,7 +116,7 @@ graph LR
     DirectBenchmark -- Uses --> DirectAgent
     CodeBenchmark -- Uses --> ModelUtil
     DirectBenchmark -- Uses --> ModelUtil
-    Loader -- Reads --> ARC_Files
+    Loader -- Reads --> StaticDataset
     ModelUtil -- Interacts with --> Model
     CodeBenchmark -- Saves --> BenchmarkResults
     DirectBenchmark -- Saves --> BenchmarkResults
@@ -164,14 +160,14 @@ graph LR
 
 ## Component relationships
 
-* **Synthetic Data Creation**: UI depends on ARC data format. Data storage format defined in `data/nature_of_data.md`.
+* **Synthetic Data Creation**: UI depends on ARC data format, primarily interacting with `apps/static/dataset.json`. Data storage format defined in `data/nature_of_data.md`.
 * **Synthetic Data Generation**:
-  * Data generation scripts orchestrate the process using agents, utilities, and configuration
-  * Both scripts depend on `utilities/config.py` for settings and select data loading method based on configuration
-  * Agents implement distinct prompting strategies but rely on `utilities/model_utils.py` for API interaction
-  * Auxiliary utilities process output from data generation scripts and update storage
+  * Data generation scripts orchestrate the process using agents, utilities, and configuration.
+  * Scripts depend on `utilities/config.py` for settings and use `utilities/data_loader.py` which defaults to loading tasks from `apps/static/dataset.json` (path configurable via CLI).
+  * Agents implement distinct prompting strategies but rely on `utilities/model_utils.py` for API interaction.
+  * Auxiliary utilities process output from data generation scripts and update storage.
 * **LLM Benchmarking**:
-  * Benchmark scripts orchestrate the evaluation process
-  * Scripts use `utilities/data_loader.py` to load tasks (supporting filtering via `--task_ids`)
+  * Benchmark scripts orchestrate the evaluation process.
+  * Scripts use `utilities/data_loader.py` to load tasks (defaulting to `apps/static/dataset.json`, path configurable via CLI, and supporting filtering via `--task_ids`).
   * Scripts use `utilities/model_utils.py` to interact with models
   * Scripts implement their own logic for code execution and evaluation

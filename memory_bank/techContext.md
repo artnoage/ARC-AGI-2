@@ -3,7 +3,7 @@
 ## Technologies used
 
 **Core**
-* ARC Dataset (JSON format): The fundamental data source
+* ARC Dataset (JSON format): The fundamental data source, located at `apps/static/dataset.json`.
 
 **Synthetic Data Creation Interfaces**
 * HTML, CSS, JavaScript: For client-side interfaces
@@ -42,13 +42,13 @@
 
 **Synthetic Data Generation & Benchmarking**
 * Python environment (e.g., venv)
-* Access to ARC dataset files
+* Access to the ARC dataset file (`apps/static/dataset.json`).
 * .env file for API keys
 * Potentially a local model server setup (e.g., Ollama)
 
 ## Technical constraints
 
-* ARC dataset size: Individual task files preferred over monolithic dataset.json due to memory constraints
+* ARC dataset: The project uses a monolithic `apps/static/dataset.json` file. Memory constraints related to its size should be considered if it grows very large.
 * Model API rate limits and costs (if using external APIs)
 * Network latency for model API calls
 * Requires Python environment capable of running asyncio and required libraries

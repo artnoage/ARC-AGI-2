@@ -594,7 +594,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dataset_directory",
         type=str,
-        default="../data",
+        default="../apps/static", # Default points to the apps/static directory
         help="Path to the directory containing dataset.json"
     )
     parser.add_argument(
