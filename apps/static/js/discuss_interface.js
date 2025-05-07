@@ -31,6 +31,24 @@ $(document).ready(function() {
     $('#next_version_btn').click(function() {
         nextVersion();
     });
+    
+    // Stop streaming button
+    $('#stop_streaming_btn').click(function() {
+        if (ACTIVE_STREAM_CONTROLLER) {
+            console.log("Manually cancelling active streaming request");
+            ACTIVE_STREAM_CONTROLLER.abort();
+            ACTIVE_STREAM_CONTROLLER = null;
+            
+            // Add a system message to indicate the streaming was cancelled
+            addSystemMessage("Streaming response cancelled by user.");
+            
+            // Re-enable the send button
+            $('#send_message_btn').prop('disabled', false);
+            
+            // Hide the stop button
+            $(this).hide();
+        }
+    });
 
     // --- Username Handling (including Cookie) ---
     const savedUsername = getCookie('username');
@@ -228,7 +246,135 @@ $(document).ready(function() {
     $('#submit_trace_btn').click(function() {
         submitReasoningTrace();
     });
+
+    // Copy system prompt button
+    $('#copy_system_prompt_btn').click(function() {
+        copySystemPromptToClipboard();
+    });
 });
+
+// Function to get the current dynamic task context string
+function getCurrentDynamicTaskContext() {
+    let contextStr = "";
+    const selectedDataSource = $('#task_data_source_select').val();
+
+    if (CURRENT_TASK_ID && TASK_VERSIONS_MAP[CURRENT_TASK_ID]) {
+        const originalTaskData = TASK_VERSIONS_MAP[CURRENT_TASK_ID].find(v => v.version === 0) || TASK_VERSIONS_MAP[CURRENT_TASK_ID][0];
+        const currentVariationData = TASK_VERSIONS_MAP[CURRENT_TASK_ID][CURRENT_VERSION_INDEX];
+
+        contextStr = `Current task ID: ${CURRENT_TASK_ID}\n`;
+        let trainExamplesForContext = [];
+        let testExamplesForContext = [];
+
+        if (selectedDataSource === "original") {
+            contextStr += `Data source: Original task (Version ${originalTaskData.version || 0}).\n`;
+            trainExamplesForContext = originalTaskData.train ? originalTaskData.train.slice() : [];
+            if (originalTaskData.test) {
+                testExamplesForContext = originalTaskData.test.map(t => ({ input: t.input }));
+            }
+        } else if (selectedDataSource === "variation") {
+            contextStr += `Data source: Current variation (Version ${currentVariationData.version || 0}).\n`;
+            trainExamplesForContext = currentVariationData.train ? currentVariationData.train.slice() : [];
+            if (currentVariationData.test) {
+                testExamplesForContext = currentVariationData.test.map(t => ({ input: t.input }));
+            }
+        } else { // selectedDataSource === "both"
+            contextStr += `Data source: Combined (Original Task Version ${originalTaskData.version || 0} + Current Variation Version ${currentVariationData.version || 0}).\n`;
+            trainExamplesForContext = originalTaskData.train ? originalTaskData.train.slice() : [];
+            // Only add variation if it's different from original and has train examples
+            if (currentVariationData.task_id !== originalTaskData.task_id || currentVariationData.version !== originalTaskData.version) {
+                if (currentVariationData.train) {
+                     currentVariationData.train.forEach(varTrainEx => {
+                        trainExamplesForContext.push(varTrainEx);
+                    });
+                }
+            }
+            // Test examples from the current variation (or original if variation has none)
+            if (currentVariationData.test && currentVariationData.test.length > 0) {
+                testExamplesForContext = currentVariationData.test.map(t => ({ input: t.input }));
+            } else if (originalTaskData.test) {
+                 testExamplesForContext = originalTaskData.test.map(t => ({ input: t.input }));
+            }
+        }
+
+        if (trainExamplesForContext.length > 0) {
+            contextStr += `The task has ${trainExamplesForContext.length} training examples and ${testExamplesForContext.length} test examples.\n\n`;
+            contextStr += "TRAINING EXAMPLES:\n";
+            for (let i = 0; i < trainExamplesForContext.length; i++) {
+                const example = trainExamplesForContext[i];
+                contextStr += `Example ${i+1}:\n`;
+                contextStr += "Input: " + JSON.stringify(example.input) + "\n";
+                contextStr += "Output: " + JSON.stringify(example.output) + "\n\n";
+            }
+            if (testExamplesForContext.length > 0) {
+                contextStr += "TEST INPUTS (only inputs are provided to the AI):\n";
+                for (let i = 0; i < testExamplesForContext.length; i++) {
+                    const testInput = testExamplesForContext[i].input; 
+                    contextStr += `Test ${i+1} input grid: ` + JSON.stringify(testInput) + "\n\n";
+                }
+            }
+        } else {
+             contextStr += `The selected task/variation has no training examples.\n`;
+             if (testExamplesForContext.length > 0) {
+                contextStr += "TEST INPUTS (only inputs are provided to the AI):\n";
+                for (let i = 0; i < testExamplesForContext.length; i++) {
+                    const testInput = testExamplesForContext[i].input;
+                    contextStr += `Test ${i+1} input grid: ` + JSON.stringify(testInput) + "\n\n";
+                }
+            }
+        }
+    } else {
+        contextStr = "No specific task is currently selected.\n";
+    }
+    return contextStr;
+}
+
+// Function to copy the full system prompt to clipboard
+function copySystemPromptToClipboard() {
+    const basePromptPart1 = "You are an AI assistant helping with Abstraction and Reasoning Corpus (ARC) tasks... " +
+                          "Your goal is to help the user understand patterns, transformations, and reasoning strategies " +
+                          "for solving ARC tasks. Be clear, helpful, and provide step-by-step explanations when appropriate. ";
+    
+    const basePromptPart2 = "\n---\n" +
+                          "In case the user asks for code generation I provide some guidlines:"+ // Note: "guidlines" typo from original
+                          "\n"+
+                          "**Guidliness for Code Generation:**\n\n" + // Note: "Guidliness" typo from original
+                          "1.  Analyze the examples to determine the transformation rule.\n" +
+                          "2.  Explain the rule clearly.\n" +
+                          "3.  Provide Python code implementing the rule in a function named `solve_task`.\n" +
+                          "4.  **IMPORTANT:** The `solve_task(task_input)` function must be robust. It should correctly handle being called with EITHER:\n" +
+                          "    *   The full ARC task dictionary (where the relevant grid is typically `task_input['test'][0]['input']`).\n" +
+                          "    *   Just the input grid itself (a list of lists).\n" +
+                          "    Include checks (e.g., using `isinstance`) to determine the input type and extract/use the grid accordingly. Handle potential errors gracefully if the input format is unexpected.\n" +
+                          "---"+
+                          "\n---\n" +
+                          "In case the user gives you hints:"+
+                          "\n"+
+                          "Take the hints into account in your thinking process but do NOT make any mention of them in your reasoning or in the code."+
+                          "---";
+
+    const dynamicTaskContext = getCurrentDynamicTaskContext();
+    const fullSystemPrompt = basePromptPart1 + dynamicTaskContext + basePromptPart2;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(fullSystemPrompt).then(function() {
+            addSystemMessage('System prompt copied to clipboard!');
+            // Temporarily change button text for feedback
+            const originalButtonText = $('#copy_system_prompt_btn').text();
+            $('#copy_system_prompt_btn').text('Copied!');
+            setTimeout(() => {
+                $('#copy_system_prompt_btn').text(originalButtonText);
+            }, 2000);
+        }, function(err) {
+            addSystemMessage('Failed to copy system prompt. See console for details.');
+            console.error('Failed to copy system prompt: ', err);
+        });
+    } else {
+        addSystemMessage('Clipboard API not available. This is likely due to an insecure connection (HTTP). Please serve the page over HTTPS or from localhost. The prompt has been logged to the console for manual copying.');
+        console.warn('navigator.clipboard.writeText is not available. System Prompt for manual copy:');
+        console.log(fullSystemPrompt);
+    }
+}
 
 // WebSocket connection
 function connectWebSocket() {
@@ -353,6 +499,15 @@ function loadTask(taskId, versionIndex = 0) {
         console.log("Cancelling active streaming request due to task change");
         ACTIVE_STREAM_CONTROLLER.abort();
         ACTIVE_STREAM_CONTROLLER = null;
+        
+        // Add a system message to indicate the streaming was cancelled due to task change
+        addSystemMessage("Streaming response cancelled due to task change.");
+        
+        // Re-enable the send button
+        $('#send_message_btn').prop('disabled', false);
+        
+        // Hide the stop button if it's visible
+        $('#stop_streaming_btn').hide();
     }
     
     if (!TASK_VERSIONS_MAP[taskId] || versionIndex < 0 || versionIndex >= TASK_VERSIONS_MAP[taskId].length) {
@@ -727,55 +882,48 @@ function sendUserMessage() {
             
             // Create a streaming handler that will update the message content
             const streamHandler = function(chunk) {
-                console.log("Processing chunk in streamHandler, length:", chunk.length);
+                console.log(`--- streamHandler received chunk (discuss_interface.js) ---`);
+                console.log("Raw chunk received by streamHandler:", chunk);
+                console.log("Length:", chunk ? chunk.length : 'N/A');
                 
                 // Skip empty chunks or processing messages
-                if (!chunk.trim() || chunk.includes("OPENROUTER PROCESSING")) {
-                    console.log("Skipping empty chunk or processing message");
+                if (!chunk || !chunk.trim()) {
+                    console.log("streamHandler: Skipping empty or null chunk.");
+                    console.log(`--- streamHandler END ---`);
+                    return;
+                }
+                
+                // Filter out OpenRouter processing messages
+                if (chunk.includes("OPENROUTER PROCESSING")) {
+                    console.log("streamHandler: Filtering out OpenRouter processing message:", chunk);
+                    console.log(`--- streamHandler END ---`);
                     return;
                 }
                 
                 // Process the chunk to handle code blocks and newlines
                 let processedChunk = escapeHtml(chunk);
+                console.log("streamHandler: Chunk after escapeHtml:", processedChunk);
                 
                 // Get the current content
                 const messageElement = $(`#${messageId} .message_content`);
                 if (messageElement.length === 0) {
-                    console.error("Message element not found:", messageId);
+                    console.error("streamHandler: Message element not found for ID:", messageId);
+                    console.log(`--- streamHandler END ---`);
                     return;
                 }
                 
-                let currentContent = messageElement.html();
-                console.log("Current content length:", currentContent.length);
+                // Store the raw content in a data attribute for post-processing
+                let currentRawContent = messageElement.attr('data-raw-content') || '';
+                currentRawContent += chunk;
+                messageElement.attr('data-raw-content', currentRawContent);
                 
-                // Append the new chunk
-                let newContent = currentContent + processedChunk;
-                
-                // Check if we have complete code blocks
-                const codeBlockRegex = /```(?:python)?([\s\S]*?)```/g;
-                newContent = newContent.replace(codeBlockRegex, function(match, codeContent) {
-                    // Wrap code in a pre>code block to preserve indentation
-                    return `<pre><code>${codeContent}</code></pre>`;
-                });
-                
-                // For text outside of code blocks, replace newlines with <br>
-                // But we need to avoid replacing newlines inside the <pre> tags we just created
-                let finalHtml = '';
-                let segments = newContent.split(/(<pre>[\s\S]*?<\/pre>)/g);
-                
-                segments.forEach(segment => {
-                    if (segment.startsWith('<pre>')) {
-                        finalHtml += segment;
-                    } else {
-                        finalHtml += segment.replace(/\n/g, '<br>');
-                    }
-                });
-                
-                // Update the message content
-                messageElement.html(finalHtml);
-                console.log("Updated message content, new length:", finalHtml.length);
+                // For streaming display, just append the escaped HTML with newlines converted to <br>
+                // We'll do proper code block formatting after streaming is complete
+                let displayContent = escapeHtml(chunk).replace(/\n/g, '<br>');
+                messageElement.append(displayContent);
                 
                 scrollChatToBottom();
+                console.log(`--- streamHandler END ---`);
             };
             
             // Use the OpenRouter API with streaming
@@ -787,10 +935,14 @@ function sendUserMessage() {
             // Add a message to indicate which task this stream belongs to
             const currentTaskId = CURRENT_TASK_ID;
             
+            // Show the stop button
+            $('#stop_streaming_btn').show();
+            
             console.log("Starting streaming request for task:", currentTaskId);
             
             try {
-                OpenRouterAPI.sendMessage(API_KEY, messageText, taskContext, TEMPERATURE, conversationHistory, true, 
+                OpenRouterAPI.sendMessage(API_KEY, messageText, taskContext, TEMPERATURE, conversationHistory, true,
+                    ACTIVE_STREAM_CONTROLLER, // Pass the controller
                     function(chunk) {
                         // Only process the chunk if we're still on the same task
                         if (CURRENT_TASK_ID === currentTaskId) {
@@ -803,10 +955,78 @@ function sendUserMessage() {
                     })
                     .then(response => {
                         console.log("Streaming complete for task:", currentTaskId, "Response length:", response.length);
+                        console.log("Accumulated fullResponse length:", fullResponse.length);
+                        
+                        // Check if we have a valid response
+                        if (response.length === 0 && fullResponse.length > 0) {
+                            console.log("Using accumulated fullResponse instead of empty response");
+                            response = fullResponse;
+                        } else if (response.length === 0) {
+                            console.warn("Received empty response from streaming API");
+                            
+                            // Check if the message element has any content despite empty response
+                            const messageElement = $(`#${messageId} .message_content`);
+                            const currentContent = messageElement.html();
+                            
+                            if (currentContent && currentContent.trim().length > 0) {
+                                console.log("Message element has content despite empty response, keeping it");
+                                // Use the HTML content that was accumulated during streaming
+                                response = messageElement.text(); // Get the text content without HTML
+                            } else {
+                                // No content at all, show error message
+                                removeTypingIndicator();
+                                addSystemMessage("The AI model returned an empty response. Please try again or try with a different model.");
+                                
+                                // Clear the empty AI message that was created for streaming
+                                $(`#${messageId}`).remove();
+                                
+                        // Clear the active controller
+                        if (ACTIVE_STREAM_CONTROLLER) {
+                            ACTIVE_STREAM_CONTROLLER = null;
+                        }
+                        
+                        // Re-enable the send button and hide the stop button
+                        $('#send_message_btn').prop('disabled', false);
+                        $('#stop_streaming_btn').hide();
+                                return;
+                            }
+                        }
+                        
+                        // Process the raw content to properly format code blocks
+                        const messageElement = $(`#${messageId} .message_content`);
+                        const rawContent = messageElement.attr('data-raw-content') || '';
+                        
+                        if (rawContent) {
+                            // Process the raw content to properly format code blocks
+                            let processedText = escapeHtml(rawContent);
+                            
+                            // Check if there are code blocks (```python ... ```)
+                            const codeBlockRegex = /```(?:python)?([\s\S]*?)```/g;
+                            processedText = processedText.replace(codeBlockRegex, function(match, codeContent) {
+                                console.log("Found code block, content:", codeContent.substring(0,50) + "...");
+                                // Wrap code in a pre>code block to preserve indentation
+                                return `<pre><code>${codeContent}</code></pre>`;
+                            });
+                            
+                            // For text outside of code blocks, replace newlines with <br>
+                            let finalHtml = '';
+                            let segments = processedText.split(/(<pre>[\s\S]*?<\/pre>)/g);
+                            
+                            segments.forEach(segment => {
+                                if (segment.startsWith('<pre>')) {
+                                    finalHtml += segment; // Already formatted and escaped
+                                } else {
+                                    finalHtml += segment.replace(/\n/g, '<br>');
+                                }
+                            });
+                            
+                            // Update the message content with properly formatted HTML
+                            messageElement.html(finalHtml);
+                        }
                         
                         // Save the complete response to memory only if we're still on the same task
                         if (CURRENT_TASK_ID === currentTaskId) {
-                            addMessageToMemory(CURRENT_TASK_ID, 'ai', fullResponse);
+                            addMessageToMemory(CURRENT_TASK_ID, 'ai', response);
                         }
                         
                         // Clear the active controller
@@ -814,18 +1034,69 @@ function sendUserMessage() {
                             ACTIVE_STREAM_CONTROLLER = null;
                         }
                         
-                        // Re-enable the send button
+                        // Re-enable the send button and hide the stop button
                         $('#send_message_btn').prop('disabled', false);
+                        $('#stop_streaming_btn').hide();
                     })
                     .catch(error => {
                         console.error("Streaming error for task:", currentTaskId, "Error:", error);
                         
-                        // Only show error if it's not an abort error or if we're still on the same task
-                        if (error.name !== 'AbortError' || CURRENT_TASK_ID === currentTaskId) {
-                            console.error("Error getting AI response:", error);
-                            addSystemMessage(`Error: ${error.message || "Failed to get response from AI model"}`);
+                        // Check if this is a timeout error
+                        const isTimeout = error.message && error.message.includes("timed out after 180 seconds");
+                        
+                        // Only show error if we're still on the same task
+                        if (CURRENT_TASK_ID === currentTaskId) {
+                            if (isTimeout) {
+                                // For timeout errors, the message has already been added to the UI by the timeout handler
+                                console.log("Timeout error handled for task:", currentTaskId);
+                                
+                                // Process the raw content to properly format code blocks
+                                const messageElement = $(`#${messageId} .message_content`);
+                                const rawContent = messageElement.attr('data-raw-content') || '';
+                                
+                                if (rawContent) {
+                                    // Process the raw content to properly format code blocks
+                                    let processedText = escapeHtml(rawContent);
+                                    
+                                    // Check if there are code blocks (```python ... ```)
+                                    const codeBlockRegex = /```(?:python)?([\s\S]*?)```/g;
+                                    processedText = processedText.replace(codeBlockRegex, function(match, codeContent) {
+                                        console.log("Found code block in timeout response, content:", codeContent.substring(0,50) + "...");
+                                        // Wrap code in a pre>code block to preserve indentation
+                                        return `<pre><code>${codeContent}</code></pre>`;
+                                    });
+                                    
+                                    // For text outside of code blocks, replace newlines with <br>
+                                    let finalHtml = '';
+                                    let segments = processedText.split(/(<pre>[\s\S]*?<\/pre>)/g);
+                                    
+                                    segments.forEach(segment => {
+                                        if (segment.startsWith('<pre>')) {
+                                            finalHtml += segment; // Already formatted and escaped
+                                        } else {
+                                            finalHtml += segment.replace(/\n/g, '<br>');
+                                        }
+                                    });
+                                    
+                                    // Add a note that this was cut off
+                                    finalHtml += '<br><br><em>[Response was cut off due to 180-second timeout]</em>';
+                                    
+                                    // Update the message content with properly formatted HTML
+                                    messageElement.html(finalHtml);
+                                    
+                                    // Save the partial response to memory
+                                    const partialContent = rawContent + "\n\n[Response was cut off due to 180-second timeout]";
+                                    addMessageToMemory(CURRENT_TASK_ID, 'ai', partialContent);
+                                }
+                            } else if (error.name !== 'AbortError') {
+                                // For non-abort errors, show the error message
+                                console.error("Error getting AI response:", error);
+                                addSystemMessage(`Error: ${error.message || "Failed to get response from AI model"}`);
+                            } else {
+                                console.log("Streaming was aborted for task:", currentTaskId);
+                            }
                         } else {
-                            console.log("Streaming was aborted for task:", currentTaskId);
+                            console.log("Ignoring error for previous task:", currentTaskId);
                         }
                         
                         // Clear the active controller

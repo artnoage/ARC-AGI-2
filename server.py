@@ -508,6 +508,83 @@ def execute_python_code():
         'error': error_msg
     })
 
+@app.route('/arc2/proxy_openrouter', methods=['POST'])
+def proxy_openrouter_api():
+    """Proxies requests to the OpenRouter API and logs the response chunks."""
+    import requests
+    import time
+    
+    # Get the request data
+    request_data = request.json
+    api_key = request_data.get('api_key')
+    model = request_data.get('model')
+    messages = request_data.get('messages')
+    temperature = request_data.get('temperature', 0.7)
+    stream = request_data.get('stream', False)
+    
+    if not api_key or not model or not messages:
+        return jsonify({'error': 'Missing required parameters'}), 400
+    
+    # Log the request
+    logging.info(f"Proxying OpenRouter API request for model: {model}")
+    logging.info(f"Stream mode: {stream}")
+    
+    # Prepare the request to OpenRouter
+    openrouter_url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "stream": stream
+    }
+    
+    try:
+        if stream:
+            # For streaming responses, we need to stream the response back to the client
+            def generate():
+                # Make the request to OpenRouter
+                with requests.post(openrouter_url, json=payload, headers=headers, stream=True) as response:
+                    if not response.ok:
+                        error_text = response.text
+                        logging.error(f"OpenRouter API error: {response.status_code} {response.reason}")
+                        logging.error(f"Error details: {error_text}")
+                        yield f"data: {{\"error\": \"OpenRouter API error: {response.status_code} {response.reason}\"}}\n\n"
+                        return
+                    
+                    # Stream the response chunks
+                    chunk_count = 0
+                    for line in response.iter_lines():
+                        if line:
+                            chunk_count += 1
+                            decoded_line = line.decode('utf-8')
+                            logging.info(f"Server received chunk {chunk_count}: {decoded_line}")
+                            yield f"{decoded_line}\n"
+                    
+                    logging.info(f"Server finished streaming, received {chunk_count} chunks")
+            
+            return app.response_class(generate(), mimetype='text/event-stream')
+        else:
+            # For non-streaming responses, make a regular request
+            response = requests.post(openrouter_url, json=payload, headers=headers)
+            
+            if not response.ok:
+                logging.error(f"OpenRouter API error: {response.status_code} {response.reason}")
+                logging.error(f"Error details: {response.text}")
+                return jsonify({'error': f"OpenRouter API error: {response.status_code} {response.reason}"}), response.status_code
+            
+            # Return the response data
+            response_data = response.json()
+            logging.info("Server received complete non-streaming response")
+            return jsonify(response_data)
+    
+    except Exception as e:
+        logging.error(f"Error proxying OpenRouter API request: {e}")
+        return jsonify({'error': f"Error proxying OpenRouter API request: {str(e)}"}), 500
+
 @socketio.on('sign_variation')
 def handle_sign_variation(data):
     """Client signs a transformed task variation."""

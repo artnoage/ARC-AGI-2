@@ -45,6 +45,7 @@
                     <div id="chat_input_area">
                         <textarea id="chat_input" placeholder="Type your message here..."></textarea>
                         <button id="send_message_btn">Send</button>
+                        <button id="stop_streaming_btn" style="display: none; background-color: #e74c3c;">Stop</button>
                     </div>
                 </div>
                 
@@ -121,6 +122,7 @@
                                     <select id="model_selector">
                                         <option value="claude">Claude 3.7 Sonnet</option>
                                         <option value="gemini-pro">Gemini 2.5 Pro</option>
+                                        <option value="gemini-pro-exp">Gemini 2.5 Pro Exp</option>
                                         <option value="gemini-flash">Gemini 2.5 Flash</option>
                                         <option value="gpt">GPT-4o Mini</option>
                                     </select>
@@ -191,7 +193,10 @@
                                 <button id="visualize_input_btn">Visualize Input</button>
                                 <button id="visualize_output_btn">Visualize Output</button>
                                 <button id="execute_code_btn">Execute Code</button>
-                                <button id="submit_trace_btn">Submit Trace</button>
+                                <button id="submit_trace_btn" class="secondary_btn">Submit Trace</button>
+                            </div>
+                            <div class="button_row" style="margin-top: 5px;">
+                                <button id="copy_system_prompt_btn" class="secondary_btn">Copy System Prompt</button>
                             </div>
                         </div>
                     </div>

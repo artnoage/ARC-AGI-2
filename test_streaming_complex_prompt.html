@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>OpenRouter API Streaming Test (Complex Prompt)</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="standalone_openrouter_api.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #response_container {
+            border: 1px solid #ccc;
+            padding: 10px;
+            min-height: 200px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+        button, input, textarea {
+            margin: 5px 0;
+            padding: 5px;
+            box-sizing: border-box; /* Ensures padding doesn't add to width */
+        }
+        .settings {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        textarea {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>OpenRouter API Streaming Test (Complex Prompt for Task 2b83f449)</h1>
+    
+    <div class="settings">
+        <h2>Settings</h2>
+        <div>
+            <label for="api_key">API Key:</label>
+            <input type="password" id="api_key" placeholder="Enter OpenRouter API key" style="width: 300px;">
+        </div>
+        <div>
+            <label for="model_selector">Model:</label>
+            <select id="model_selector">
+                <option value="gemini-pro">Gemini 2.5 Pro</option>
+                <option value="claude">Claude 3.7 Sonnet</option>
+                <option value="gemini-flash">Gemini 2.5 Flash</option>
+                <option value="gpt">GPT-4o Mini</option>
+            </select>
+        </div>
+        <div>
+            <label for="streaming_toggle">Streaming:</label>
+            <input type="checkbox" id="streaming_toggle" checked>
+        </div>
+        <div>
+            <label for="temperature">Temperature:</label>
+            <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7">
+            <span id="temperature_value">0.7</span>
+        </div>
+    </div>
+    
+    <div>
+        <h2>Test Message</h2>
+        <textarea id="message" rows="4" placeholder="Enter your message here...">Please analyze task 2b83f449 and suggest a solution approach.</textarea>
+    </div>
+    
+    <button id="send_btn">Send Message with Complex Context</button>
+    
+    <h2>Response</h2>
+    <div id="response_container"></div>
+    
+    <script>
+        // Define the complex task context
+        const complexTaskContext = `Current task ID: 2b83f449
+Data source: Original task (Version 0).
+The task has 2 training examples and 1 test examples.
+
+TRAINING EXAMPLES:
+Example 1:
+Input: [[3,8,8,8,8,8,8,0,8,8,8,8,8,8,8,8,8,8,3],[0,0,0,7,7,7,0,0,0,7,7,7,0,0,0,0,0,0,0],[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,0,0,0,7,7,7,0,0,0,0,7,7,7,0,0,0,0],[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,7,7,7,0,0,7,7,7,0,0,0,0,7,7,7,0,0],[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,0,0,7,7,7,0,0,0,7,7,7,0,0,0,0,0,0],[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,0,8,8,3],[0,0,0,0,0,0,0,7,7,7,0,0,0,0,0,0,0,0,0],[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,0,0,7,7,7,0,0,0,0,0,7,7,7,0,0,0,0],[8,8,0,8,8,8,8,8,0,8,8,8,8,8,8,8,8,8,8]]
+Output: [[8,8,8,8,6,8,8,0,8,8,6,8,8,8,8,8,8,8,8],[0,0,0,8,6,8,0,0,0,8,6,8,0,0,0,0,0,0,0],[3,3,8,8,6,8,6,8,8,8,6,8,8,6,8,8,8,8,8],[0,0,0,0,0,8,6,8,0,0,0,0,8,6,8,0,0,0,0],[8,8,8,6,8,8,6,8,6,8,8,8,8,6,8,6,8,8,8],[0,0,8,6,8,0,0,8,6,8,0,0,0,0,8,6,8,0,0],[3,3,8,6,8,6,8,8,6,8,8,6,8,8,8,6,8,3,3],[0,0,0,0,8,6,8,0,0,0,8,6,8,0,0,0,0,0,0],[3,8,8,8,8,6,8,8,6,8,8,6,8,8,3,0,8,8,3],[0,0,0,0,0,0,0,8,6,8,0,0,0,0,0,0,0,0,0],[8,8,8,8,8,6,8,8,6,8,8,8,8,6,8,8,8,8,8],[0,0,0,0,8,6,8,0,0,0,0,0,8,6,8,0,0,0,0],[8,8,0,3,8,6,8,8,0,3,8,8,8,6,8,8,8,8,3]]
+
+Example 2:
+Input: [[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,0,7,7,7,0,0,0,0,0,0,0,0,0,0],[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,0,0,0,0,0,0,0,0,0,7,7,7,0,0],[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,0,0,0,7,7,7,0,0,0,0,0,0,0,0],[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,7,7,7,0,0,0,0,0,7,7,7,0,0,0],[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,0,0,0,0,7,7,7,0,0,0,0,0,0,0],[8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8]]
+Output: [[8,8,8,8,6,8,8,8,8,8,8,8,8,8,8,8],[0,0,0,8,6,8,0,0,0,0,0,0,0,0,0,0],[3,3,8,8,6,8,8,8,8,8,8,8,6,8,8,8],[0,0,0,0,0,0,0,0,0,0,0,8,6,8,0,0],[8,8,8,8,8,8,6,8,8,8,8,8,6,8,3,3],[0,0,0,0,0,8,6,8,0,0,0,0,0,0,0,0],[8,8,8,6,8,8,6,8,8,8,8,6,8,8,8,8],[0,0,8,6,8,0,0,0,0,0,8,6,8,0,0,0],[3,3,8,6,8,8,8,6,8,8,8,6,8,8,3,3],[0,0,0,0,0,0,8,6,8,0,0,0,0,0,0,0],[3,8,8,8,8,8,8,6,8,8,8,8,8,8,8,3]]
+
+TEST INPUTS:
+Test 1 input grid: [[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,0,0,0,0,0,0,0,7,7,7,0,0,0,0,0],[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,0,0,0,0,0,0,0,0,0,0,7,7,7,0,0],[3,8,8,8,8,8,8,0,8,8,8,8,8,8,8,8,3],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,0,0,0,0,7,7,7,0,0,0,0,0,0,0,0],[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,0,7,7,7,0,0,0,0,0,0,0,0,0,0,0],[3,8,8,8,8,8,8,8,8,8,0,8,8,8,8,8,3],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,0,0,0,0,0,0,0,7,7,7,0,0,0,0,0],[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,0,0,0,0,7,7,7,0,0,0,0,0,0,0,0],[3,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,3],[0,0,7,7,7,0,0,0,0,0,0,7,7,7,0,0,0],[8,8,8,8,8,8,8,0,8,8,8,8,8,8,8,8,8]]
+`;
+
+        $(document).ready(function() {
+            // Load saved API key if available
+            const savedApiKey = localStorage.getItem('openrouter_api_key');
+            if (savedApiKey) {
+                $('#api_key').val(savedApiKey);
+            }
+            
+            // Set default model to gemini-pro and load saved if available
+            let defaultModel = 'gemini-pro';
+            const savedModel = localStorage.getItem('selected_model_complex_test'); // Use a different key for this test page
+            if (savedModel && OpenRouterAPI && OpenRouterAPI.models[savedModel]) {
+                defaultModel = savedModel;
+            }
+            $('#model_selector').val(defaultModel);
+            if (OpenRouterAPI) { // Ensure OpenRouterAPI is loaded
+                 OpenRouterAPI.setSelectedModel(defaultModel);
+            }
+
+
+            // Temperature slider event
+            $('#temperature').on('input', function() {
+                const value = parseFloat($(this).val());
+                $('#temperature_value').text(value.toFixed(1));
+            });
+            
+            // Model selector change event
+            $('#model_selector').change(function() {
+                const selectedModelKey = $(this).val();
+                if (OpenRouterAPI && OpenRouterAPI.setSelectedModel(selectedModelKey)) {
+                    localStorage.setItem('selected_model_complex_test', selectedModelKey);
+                    console.log(`Model changed to: ${OpenRouterAPI.getSelectedModel().name}`);
+                }
+            });
+            
+            // Send button click event
+            $('#send_btn').click(function() {
+                if (typeof OpenRouterAPI === 'undefined' || !OpenRouterAPI.sendMessage) {
+                    alert('OpenRouterAPI.js not loaded or sendMessage not available. Please check the console.');
+                    return;
+                }
+                
+                const apiKey = $('#api_key').val().trim();
+                if (!apiKey) {
+                    alert('Please enter an API key');
+                    return;
+                }
+                localStorage.setItem('openrouter_api_key', apiKey);
+                
+                const userMessage = $('#message').val().trim();
+                if (!userMessage) {
+                    alert('Please enter a message');
+                    return;
+                }
+                
+                const temperature = parseFloat($('#temperature').val());
+                const useStreaming = $('#streaming_toggle').is(':checked');
+                
+                $('#response_container').empty();
+                $('#send_btn').prop('disabled', true).text('Sending...');
+                
+                // Use the complexTaskContext defined above
+                const currentTaskContext = complexTaskContext;
+                const conversationHistory = []; // Keep it simple for this test, no history
+
+                if (useStreaming) {
+                    const streamHandler = function(chunk) {
+                        $('#response_container').append(document.createTextNode(chunk));
+                    };
+                    
+                    OpenRouterAPI.sendMessage(apiKey, userMessage, currentTaskContext, temperature, conversationHistory, true, streamHandler)
+                        .then(response => {
+                            console.log('Streaming complete');
+                            $('#send_btn').prop('disabled', false).text('Send Message with Complex Context');
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            $('#response_container').append(`\n\nError: ${error.message}`);
+                            $('#send_btn').prop('disabled', false).text('Send Message with Complex Context');
+                        });
+                } else {
+                    OpenRouterAPI.sendMessage(apiKey, userMessage, currentTaskContext, temperature, conversationHistory, false, null)
+                        .then(response => {
+                            $('#response_container').text(response);
+                            $('#send_btn').prop('disabled', false).text('Send Message with Complex Context');
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            $('#response_container').text(`Error: ${error.message}`);
+                            $('#send_btn').prop('disabled', false).text('Send Message with Complex Context');
+                        });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

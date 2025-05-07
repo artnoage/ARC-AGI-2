@@ -190,18 +190,29 @@
     color: #d4d4d4;
 }
 
-#send_message_btn {
+#send_message_btn, #stop_streaming_btn {
     margin-left: 10px;
     padding: 0 20px;
-    background-color: #007acc;
     color: white;
     border: none;
     border-radius: 3px;
     cursor: pointer;
 }
 
+#send_message_btn {
+    background-color: #007acc;
+}
+
 #send_message_btn:hover {
     background-color: #005f9e;
+}
+
+#stop_streaming_btn {
+    background-color: #e74c3c;
+}
+
+#stop_streaming_btn:hover {
+    background-color: #c0392b;
 }
 
 /* Bottom Panel Layout */

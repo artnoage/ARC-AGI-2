@@ -97,7 +97,11 @@ async function sendMessageToOpenRouter(apiKey, userMessage, taskContext = '', te
         model: model.id,
         messages: messages,
         temperature: temperature,
-        stream: useStreaming
+        stream: useStreaming,
+        reasoning: {
+            effort: "high",
+            exclude: false
+        }
     };
 
     // Request options
