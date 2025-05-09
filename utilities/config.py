@@ -7,7 +7,7 @@ class ModelOption(Enum):
     """Enum class representing different model options."""
     # Add model options based on old_project/model_utils.py or user needs
     CLAUDE = "anthropic/claude-3.7-sonnet"
-    GEMINI_PRO = "google/gemini-2.5-pro-preview-03-25"
+    GEMINI_PRO = "google/gemini-2.5-pro-preview"
     GEMINI_FLASH="google/gemini-2.5-flash-preview"
     GPT="openai/gpt-4o-mini"
     LOCAL_0= "/Home/stat/laschos/math/AIMO2_initial/models/7BSR2" # Example path, adjust as needed
@@ -42,7 +42,7 @@ class ARCBenchmarkConfig:
 
     # --- Concurrency Settings ---
     # Maximum number of tasks to process concurrently
-    max_concurrent_tasks: int = 5 # Default concurrency limit
+    max_concurrent_tasks: int = 1 # Default concurrency limit
 
     # --- Output Settings ---
     # Directory to save benchmark results (relative to the utilities directory where this config is defined)
